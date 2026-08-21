@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+
+  <assemblyIdentity version="1.0.0.0" name="Virtunerd.ScriptOne.Installer" />
+
+  <!-- ⚠ WOERTLICH AUS DEM STANDARDMANIFEST UEBERNOMMEN. Der Installer schreibt in Spielordner
+       unter Program Files und kommt heute ohne Rechteanforderung aus; ein 'requireAdministrator'
+       hier waere eine stille Verschaerfung, die niemand verlangt hat. Nicht umformulieren. -->
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+  <!-- ⚠ DER GRUND, WARUM ES DIESE DATEI GIBT.
+       MainForm.cs setzt AutoScaleMode = AutoScaleMode.Dpi. Diese Zeile war WIRKUNGSLOS, solange
+       der Prozess DPI-unaware ist: Windows meldet ihm dann immer 96 dpi, der Skalierungsfaktor
+       ist 1,0, und das Fenster wird stattdessen als Bitmap hochskaliert. Auf einem Bildschirm mit
+       150 % sieht der Nutzer also ein UNSCHARFES Fenster - und zwar als Erstes, was er von
+       ScriptOne zu sehen bekommt. Der Quelltext erklaerte eine Absicht, die das fehlende Manifest
+       still verweigert hat.
+
+       Gefunden 2026-08-21 bei einer Untersuchung der ausgelieferten PE. Belegt durch drei
+       unabhaengige Gegenproben: kein dpiAware/dpiAwareness im eingebetteten Standardmanifest,
+       keine .exe.config mit entsprechender Angabe, und kein SetProcessDpiAwareness im ganzen
+       Quellbaum.
+
+       HINWEIS[UNGEPRUEFT]: die WIRKUNG ist auf der Entwicklungsmaschine nicht messbar - sie
+       laeuft auf 96 dpi (100 %), dort aendert sich durch diese Datei nichts. Dass das Layout bei
+       125/150/200 % richtig mitskaliert, ist damit NICHT nachgewiesen und gehoert einmal auf
+       einem hochaufloesenden Bildschirm angesehen, bevor eine Fassung herausgeht. Die Formulare
+       arbeiten mit festen Pixelkoordinaten; genau die soll AutoScaleMode.Dpi umrechnen, aber
+       geprueft ist es nicht. -->
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+    </windowsSettings>
+  </application>
+
+  <!-- Ohne diesen Block meldet Windows dem Prozess die Version 6.2, egal worauf er laeuft.
+       Fuer uns folgenlos, aber es ist die Angabe, die ein vollstaendiges Manifest ausmacht. -->
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" /><!-- Windows 10 / 11 -->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" /><!-- Windows 8.1 -->
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" /><!-- Windows 8 -->
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}" /><!-- Windows 7 -->
+    </application>
+  </compatibility>
+
+</assembly>

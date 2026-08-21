@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    References.Mono.props - die Spiel-Assemblies des MONO-Zweigs, an EINER Stelle.
+
+    WARUM EIGENE DATEI
+    Ab jetzt bauen ZWEI Projekte gegen denselben Mono-Quelltext: die Mod-DLL
+    (ScriptOne.csproj, Konfiguration 'Mono') und der BepInEx-Adapter
+    (Adapters\BepInEx\ScriptOne.BepInEx.csproj). Stuende die Liste zweimal da, waere sie
+    beim naechsten Spiel-Update einmal gepflegt und einmal nicht - und der Bau, der
+    hinterherhinkt, meldet CS0246 auf einen Spieltyp und sieht damit nach einem
+    Code-Fehler aus statt nach einer vergessenen Zeile.
+
+    ⚠ $(MonoManagedPath) bleibt ohne Local.props LEER. Das ist Absicht: der Bau meldet dann
+    MSB3245 (Referenz nicht aufgeloest) und danach CS0246, statt still gegen einen Pfad zu
+    bauen, den es auf dieser Maschine gar nicht gibt. Siehe Local.props.example.
+  -->
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(MonoManagedPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ScheduleOne.Core">
+      <HintPath>$(MonoManagedPath)\ScheduleOne.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Player erbt von FishNets NetworkBehaviour - ohne diese Referenz kennt der Compiler
+         die Basisklasse nicht und meldet den Fehler am Player, nicht an FishNet. -->
+    <Reference Include="FishNet.Runtime">
+      <HintPath>$(MonoManagedPath)\FishNet.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(MonoManagedPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

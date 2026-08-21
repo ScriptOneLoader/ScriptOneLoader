@@ -1,0 +1,100 @@
+# Build-Ausgaben
+bin/
+obj/
+
+# IDE
+.vs/
+.idea/
+*.user
+
+# KI-Werkzeugstand (lokale Agent-Konfiguration) - gehoert nie ins Mod-Repo
+.claude/
+
+# Verweise auf das SPIEL: Junctions bzw. Kopien von Spiel-DLLs. Die duerfen aus
+# rechtlichen Gruenden nicht mit, und sie sind maschinenlokal.
+libs/
+# ThirdParty/ ist ausdruecklich NICHT dasselbe: dort liegt bewusst mitgeliefertes,
+# frei lizenziertes Fremdmaterial (MoonSharp, BSD-artig), das zum Bauen noetig ist.
+# Zwei Ordner, zwei Bedeutungen - eine Ausnahme innerhalb von libs/ wuerde die Regel
+# fuer jeden spaeteren Leser unscharf machen, und daran haengt der rechtliche Teil.
+GameSource/
+Mods/
+
+# Auslieferungsartefakte - werden aus dem Quellstand erzeugt, nicht versioniert
+release/
+*.zip
+
+# Wird VOR dem Commit geschrieben und traegt darum immer den Commit davor.
+# Committed waere die Datei dauerhaft mit sich selbst im Widerspruch.
+BUILD-INFO.txt
+
+# Betriebssystem
+Thumbs.db
+.DS_Store
+
+# Bauausgabe des Standalone-Preloaders (wird aus dem Quellstand erzeugt).
+# Der Preloader-QUELLTEXT unter Standalone/Preloader/ gehoert sehr wohl ins Repo.
+Standalone/stage/
+
+# Bauausgabe des Proxy-Erzeugers
+tools/InteropGen/bin/
+tools/InteropGen/obj/
+
+# Maschinenpfade - Vorlage ist Local.props.example
+Local.props
+
+# ---------------------------------------------------------------------------
+# GEHEIMNISSE - unbedingte Sperren.
+#
+# WARUM GANZ AM ENDE: in einer .gitignore gewinnt die ZULETZT passende Regel.
+# Steht die Sperre oben, kann eine spaetere Ausnahmezeile (!muster) sie wieder
+# aufheben - und `git check-ignore` meldet vorher wie nachher etwas Plausibles,
+# der Verlust faellt also nicht auf. Am Dateiende kann keine Zeile mehr folgen,
+# die sie aushebelt. Neue Ausnahmen gehoeren deshalb OBERHALB dieses Blocks.
+#
+# Gegengeprueft am 2026-08-19: vorher Exitcode 1 ohne Regel fuer alle 13 Proben,
+# nachher jede gesperrt durch eine namentliche Regel aus diesem Block.
+#
+# ⚠ ZUM PRUEFEN `git check-ignore -q <datei>` NEHMEN, NICHT `-v`. Mit -v ist der
+# Exitcode 0, sobald IRGENDEINE Regel passt - auch eine Ausnahme `!muster`, also
+# gerade dann, wenn die Datei NICHT gesperrt ist (gemessen 2026-08-19, git 2.51.2:
+# `*.env` + `!geheim.env` gibt mit -v rc=0, ohne -v rc=1). Wer mit -v prueft,
+# bekommt fuer eine aufgehobene Sperre dasselbe Gruen wie fuer eine wirksame.
+# -v beantwortet nur WELCHE Regel griff; -q beantwortet OB gesperrt ist.
+# ---------------------------------------------------------------------------
+*.env
+.env*
+*.pfx
+*.p12
+*.snk
+*.key
+*.pem
+id_rsa*
+secrets.json
+*.apikey
+*.token
+
+# ---------------------------------------------------------------------------
+# NICHT SICHTBAR - interne Arbeitsdateien, die NIE in einen Push gehen duerfen.
+#
+# ⚠ DIESER BLOCK STEHT AM ENDE, UND DAS IST KEIN ZUFALL: in einer .gitignore
+#   gewinnt die LETZTE passende Regel. Eine Sperre weiter oben koennte von einer
+#   spaeteren '!'-Ausnahme wieder aufgehoben werden, ohne dass es jemand merkt.
+#
+# ⚠ UND SIE MUESSEN AUSGETRAGEN SEIN, nicht nur ignoriert: .gitignore gilt nur
+#   fuer UNVERFOLGTE Dateien. Was einmal im Index steht, wird weiter gepusht,
+#   egal was hier steht. Beim Anlegen dieses Blocks am 2026-08-21 wurden beide
+#   Dateien deshalb mit 'git rm --cached' aus der Verfolgung genommen; sie liegen
+#   lokal unveraendert weiter.
+#
+#   NEXT.md    - der Arbeitsvorrat. Enthaelt Ansagen des Autors, Verweise auf
+#                andere Repos der Werkstatt und Entscheidungen, die niemanden
+#                ausserhalb angehen.
+#   EINGANG.md - das eigene Verfahren fuer eingehende Issues und Pull Requests,
+#                samt Maschinenpfaden im Benutzerprofil.
+#
+# Wer hier etwas ergaenzt: erst 'git rm --cached <datei>', dann die Zeile.
+# Gegenprobe, dass es wirklich greift:  git ls-files -- <datei>   (muss LEER sein)
+# ---------------------------------------------------------------------------
+/NEXT.md
+/EINGANG.md

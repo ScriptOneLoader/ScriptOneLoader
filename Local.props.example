@@ -1,0 +1,39 @@
+<!--
+    Local.props.example - Maschinenpfade, die NICHT ins Repo gehoeren.
+
+    Kopiere diese Datei nach 'Local.props' und trage deine Pfade ein. 'Local.props' ist
+    per .gitignore ausgeschlossen; die Projektdateien importieren sie, wenn es sie gibt.
+
+    WARUM ES DIESE DATEI GIBT
+    Vorher standen die Pfade als Vorgabewerte in den .csproj - mit Benutzernamen. In einem
+    oeffentlichen Repo ist das erstens ein dauerhaftes Datenleck und zweitens nutzlos: der
+    naechste Klon hat andere Pfade und baut trotzdem nicht.
+
+    WER AUS EINEM FRISCHEN KLON BAUT, BRAUCHT DIESE DATEI. Ausserhalb der Werkstatt des
+    Autors ist KEIN Spielpfad vorbelegt (build\Standalone.props laesst sie bewusst leer,
+    Begruendung steht dort). Ohne Local.props meldet der Bau MSB3245 und danach CS0246 auf
+    Spieltypen - das ist gewollt und heisst: hier fehlt ein Pfad, nicht dort ein Typ.
+-->
+<Project>
+  <PropertyGroup>
+    <!-- ================= der eine Pfad, der meistens reicht =================
+         Setze diesen, und MelonLoaderPath sowie Il2CppAssemblyPath leiten sich davon ab.
+         Ohne ihn bleiben auch die beiden leer. -->
+    <!-- <ScheduleIPath>D:\Spiele\Schedule I</ScheduleIPath> -->
+
+    <!-- ================= nur, wenn die Ableitung nicht passt =================
+         MelonLoader-Assemblies. Abgeleitet: $(ScheduleIPath)\MelonLoader\net6 -->
+    <!-- <MelonLoaderPath>D:\Spiele\Schedule I\MelonLoader\net6</MelonLoaderPath> -->
+
+    <!-- Die Il2Cpp-Proxy-Assemblies, gegen die der Il2Cpp-Zweig uebersetzt.
+         Abgeleitet: $(ScheduleIPath)\MelonLoader\Il2CppAssemblies
+         Wer ohne MelonLoader arbeitet, erzeugt sie mit tools\Update-Interop.ps1; sie landen
+         dann in <Spielordner>\ScriptOne\interopgenerator\ und dieser Pfad gehoert hierher.
+         ⚠ Der Ordner hiess bis zum 2026-08-19 'interop' - alte Notizen zeigen ins Leere. -->
+    <!-- <Il2CppAssemblyPath>D:\Spiele\Schedule I\ScriptOne\interopgenerator</Il2CppAssemblyPath> -->
+
+    <!-- Die MONO-Assemblies des Spiels (Managed-Ordner oder ein Dekompilat davon).
+         Nur fuer den Mono-Zweig und fuer tools\Gen-Surface.ps1 noetig. -->
+    <!-- <MonoManagedPath>D:\dekompilat\Managed</MonoManagedPath> -->
+  </PropertyGroup>
+</Project>

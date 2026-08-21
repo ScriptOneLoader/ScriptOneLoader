@@ -1,0 +1,368 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)Version.props" />
+
+  <!-- Maschinenpfade kommen aus Local.props (gitignored). Vorlage: Local.props.example.
+       Sie standen frueher als Vorgabewerte HIER - mit Benutzernamen, also einem dauerhaften
+       Datenleck in einem oeffentlichen Repo und zugleich nutzlos fuer jeden anderen Klon. -->
+  <Import Project="$(MSBuildThisFileDirectory)Local.props" Condition="Exists('$(MSBuildThisFileDirectory)Local.props')" />
+
+  <!-- ⚠ DIESE ABLEITUNG MUSS HINTER DEM IMPORT STEHEN, sonst traegt sie nie.
+       build\Standalone.props laeuft ueber Directory.Build.props und damit VOR dem Rumpf
+       dieser Datei - dort saehe '$(ScheduleIPath)' immer leer. Gemessen 2026-08-19 in einem
+       frischen Klon, als die Ableitung zuerst dort stand: ScheduleIPath aufgeloest,
+       MelonLoaderPath LEER, Ergebnis CS0246 auf 'MelonLoader' - ein Reihenfolgeproblem, das
+       sich als Code-Fehler meldet.
+
+       In der Werkstatt setzt Directory.Build.props beide schon; die Bedingung '== ""'
+       sorgt dafuer, dass hier dann nichts ueberschrieben wird.
+       Bleibt ScheduleIPath leer, bleiben auch diese beiden leer - eine Ableitung aus einer
+       leeren Wurzel ergaebe '\MelonLoader\net6', also einen laufwerksrelativen Pfad, der
+       irgendwohin aufloest statt zu fehlen. -->
+  <PropertyGroup Condition="'$(ScheduleIPath)' != ''">
+    <MelonLoaderPath Condition="'$(MelonLoaderPath)' == ''">$(ScheduleIPath)\MelonLoader\net6</MelonLoaderPath>
+    <Il2CppAssemblyPath Condition="'$(Il2CppAssemblyPath)' == ''">$(ScheduleIPath)\MelonLoader\Il2CppAssemblies</Il2CppAssemblyPath>
+  </PropertyGroup>
+
+  <!-- ============================================================
+       ScriptOne - ein Lua-Wirt fuer Schedule I OHNE S1API.
+
+       Der Unterschied zu S1Lua (ifBars) ist genau einer: dort liegt zwischen
+       Lua und dem Spiel die S1API-Fassade, hier NICHTS. Die Bindung greift
+       direkt auf ScheduleOne.* bzw. Il2CppScheduleOne.* zu.
+
+       Uebernommen wird aber die eine Lehre aus S1Lua, die backendunabhaengig gilt:
+       NIEMALS MoonSharps UserData.RegisterType auf Spieltypen. Nach Lua gehen
+       ausschliesslich Zahlen, Zeichenketten, Wahrheitswerte und flache Tabellen,
+       die dieser Mod selbst baut. Damit kann kein Il2Cpp-Proxy die Skriptgrenze
+       ueberqueren - und die ganze Interop-Fallenklasse entfaellt.
+
+       Bauen:
+         dotnet build -c Il2Cpp    (Vorgabe, baut gegen die installierte Fassung)
+         dotnet build -c Mono      (baut gegen das Mono-Dekompilat, kein Mono-Spiel noetig)
+
+       MoonSharp wird EINGEBETTET (EmbeddedResource + AssemblyResolve), nicht
+       danebengelegt. S1Lua liefert stattdessen UserLibs\MoonSharp.Interpreter.dll
+       aus und nennt in der eigenen Doku prompt die Fehlerklasse dazu
+       ("cannot start if its files are nested one folder too deep"). Eine Datei
+       kann man nicht falsch ablegen.
+       ============================================================ -->
+
+  <PropertyGroup>
+    <Configurations>Il2Cpp;Mono</Configurations>
+    <Configuration Condition="'$(Configuration)' == ''">Il2Cpp</Configuration>
+
+    <AssemblyName>ScriptOne</AssemblyName>
+    <RootNamespace>ScriptOne</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <EmbedVersionAttributes>true</EmbedVersionAttributes>
+
+    <!-- MelonInfo-Erzeugung uebernimmt Directory.Build.props -->
+    <MelonModName>ScriptOne</MelonModName>
+    <MelonModType>ScriptOne.ScriptOnePlugin</MelonModType>
+    <MelonModAuthor>Virtunerd</MelonModAuthor>
+    <MelonGameCompany>null</MelonGameCompany>
+    <!-- ⚠ Hier und nicht in der Werkstattdatei: der Spielname gehoert zum MOD.
+         Stand er nur dort, erzeugte ein fremder Klon [MelonGame(null, "")] statt
+         [MelonGame(null, "Schedule I")] - eine andere DLL, ohne dass es auffaellt.
+         Gemessen am 2026-08-19 durch Vergleich beider erzeugten MelonInfo.g.cs. -->
+    <MelonGameName>Schedule I</MelonGameName>
+
+    <!-- ScriptOne ist KEIN Mod, sondern die Laufzeit: er gehoert nach Plugins\, nicht nach
+         Mods\. Der Deploy aus Directory.Build.props zielt auf Mods\ und wird deshalb
+         abgeschaltet; die Auslieferung macht das Target DeployPluginAndScripts unten. -->
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <!-- Die Lua-Mods liegen NEBEN der exe, sichtbar, ohne Umweg ueber UserData. -->
+    <LuaScriptFolder>LuaScripts</LuaScriptFolder>
+
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);0162;0168;0414;0649;1573;1574;1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- MelonLoader wurde vom Rechner entfernt (Standalone-Versuch), damit zeigen die
+       Vorgabepfade aus Directory.Build.props ins Leere. Der Plugin-Bau soll trotzdem
+       pruefbar bleiben - sonst faellt eine Regression im GEMEINSAMEN Quelltext erst auf,
+       wenn MelonLoader zurueckkommt. Ein toter HintPath meldet sich ausserdem als CS0246
+       auf 'MelonLoader' und sieht damit nach einem Code-Fehler aus statt nach einem
+       Pfad-Fehler. -->
+  <!-- ⚠ DIESER RUECKFALL WAR TOT. Er zeigte auf ScriptOne\Il2CppAssemblies\ - einen Ordner,
+       den niemand mehr schreibt. Gemessen 2026-08-19 im Spielordner: MelonLoader\Il2CppAssemblies
+       136 Dateien (Vorgabe der Werkstatt, greift), ScriptOne\Il2CppAssemblies **0 Dateien**,
+       ScriptOne\interopgenerator 138 Dateien - und genau dorthin schreibt tools\Update-Interop.ps1.
+       Die Bedingung konnte also nie zutreffen, der Rueckfall nie greifen.
+       Check-Ordnernamen.ps1 faengt das nicht: sein Muster kennt core|interop|backup, nicht
+       Il2CppAssemblies. -->
+  <PropertyGroup>
+    <Il2CppAssemblyPath Condition="!Exists('$(Il2CppAssemblyPath)\Assembly-CSharp.dll') and Exists('$(ScheduleIPath)\ScriptOne\interopgenerator\Assembly-CSharp.dll')">$(ScheduleIPath)\ScriptOne\interopgenerator</Il2CppAssemblyPath>
+  </PropertyGroup>
+
+  <!-- ===================== IL2CPP-Backend (Vorgabe) ===================== -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Il2Cpp'">
+    <TargetFramework>net6.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);IL2CPP</DefineConstants>
+    <!-- gemessen: MoonSharp 2.0.0 netstandard1.6 laedt und laeuft unter net6.0/CoreCLR -->
+    <MoonSharpDll>ThirdParty\netstandard1.6\MoonSharp.Interpreter.dll</MoonSharpDll>
+  </PropertyGroup>
+
+  <!-- ===================== MONO-Backend ===================== -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Mono'">
+    <TargetFramework>net472</TargetFramework>
+    <DefineConstants>$(DefineConstants);MONO</DefineConstants>
+    <MoonSharpDll>ThirdParty\net40\MoonSharp.Interpreter.dll</MoonSharpDll>
+
+    <MonoManagedPath Condition="'$(MonoManagedPath)' == '' and '$(MonoGamePath)' != ''">$(MonoGamePath)\Schedule I_Data\Managed</MonoManagedPath>
+    <MelonLoaderPath Condition="'$(MonoGamePath)' != ''">$(MonoGamePath)\MelonLoader\net35</MelonLoaderPath>
+
+    <!-- Rueckfall ohne Mono-Installation: das Mono-Dekompilat traegt die echten Assemblies,
+         der net35-Satz des MelonLoaders liegt in der Il2Cpp-Installation mit drin. -->
+    <!-- Ohne Local.props leer: der Mono-Zweig meldet dann MSB3245 + CS0246, statt still
+         gegen einen Pfad zu bauen, den es auf diesem Rechner gar nicht gibt. -->
+    <MonoManagedPath Condition="'$(MonoManagedPath)' == ''"></MonoManagedPath>
+    <MelonLoaderPath Condition="'$(MonoGamePath)' == ''">$(ScheduleIPath)\MelonLoader\net35</MelonLoaderPath>
+
+    <!-- Die Mono-DLL gehoert nicht in den Mods-Ordner der Il2Cpp-Installation. -->
+    <SkipCopyToGame>true</SkipCopyToGame>
+  </PropertyGroup>
+
+  <!-- Dekompilat und Fremd-DLLs duerfen NIE Projektelemente werden. -->
+  <ItemGroup>
+    <Compile Include="**\*.cs" Exclude="$(DefaultItemExcludes)" />
+    <!-- ⚠ Das Exclude ist Pflicht, weil EnableDefaultCompileItems=false gesetzt ist:
+         ein SELBST geschriebener Glob beachtet DefaultItemExcludes NICHT von allein.
+         Ohne ihn uebersetzt der Bau alles unter .claude\worktrees\ mit - das ist eine
+         vollstaendige Kopie des Repos, sobald eine Agenten-Instanz dort einen Worktree
+         anlegt. Gemessen am 2026-08-19: 256 Fehler (CS0101/CS0579) in einem Bau, der
+         Minuten vorher gruen war, und 26 von 38 Compile-Items kamen aus der Kopie.
+         Die .gitignore hilft nicht - MSBuild liest sie nicht. -->
+    <Compile Remove="libs\**" />
+    <Compile Remove="tests\**" />
+    <!-- Standalone\ ist ein EIGENES Projekt mit eigenem Einstiegspunkt und eigenen
+         Paketen. Ohne diesen Ausschluss zieht der Glob es in den Plugin-Bau und der
+         meldet Fehler, die es im Plugin gar nicht gibt (NativeHook, doppelte Attribute). -->
+    <!-- ⚠ Adapters\ ebenso: dort liegt der BepInEx-Bau mit EIGENEM Einstiegspunkt und
+         eigenen Paketen. Ohne diese Zeile zieht der Glob ihn in die Mod-DLL - gemessen
+         2026-08-19 unmittelbar nach dem Anlegen des Ordners: 14x CS0246 und 8x CS0579
+         (doppelte Attribute) in BEIDEN Konfigurationen. Dieselbe Klasse wie Standalone\ und tools\. -->
+    <Compile Remove="Adapters\**" />
+    <None Remove="Adapters\**" />
+    <Compile Remove="Standalone\**" />
+    <!-- ⚠ tools\ ebenso. Ohne diese Zeile zieht der Standard-Glob **\*.cs den
+         Proxy-Erzeuger (tools\InteropGen\Program.cs) MIT IN DIE MOD-DLL - gemessen am
+         2026-08-18 per -getItem:Compile, nicht am Fehlerbild: der Il2Cpp-Bau meldete
+         dabei 0 Fehler, der Mono-Bau fiel ueber die fehlenden Cpp2IL-Referenzen.
+         Ein gruener Bau ist hier also KEIN Beleg, dass nichts Fremdes drin ist. -->
+    <Compile Remove="tools\**" />
+    <Compile Remove="bin\**" />
+    <Compile Remove="obj\**" />
+    <None Remove="libs\**" />
+    <None Remove="tests\**" />
+    <None Remove="Standalone\**" />
+    <EmbeddedResource Remove="libs\**" />
+    <EmbeddedResource Remove="**\*.resx" />
+  </ItemGroup>
+
+  <ItemGroup>
+  <!-- ⚠ EINE QUELLE FUER DIE PFADNAMEN. Host\VerwaisterWirt.cs prueft zur Laufzeit, ob eine
+       Standalone-Installation noch starten kann - und braucht dafuer dieselben Ordner- und
+       Dateinamen, die der Installer schreibt. Pfade.cs sagt in seinem eigenen Kopf, warum
+       die nirgends ein zweites Mal stehen duerfen: nach der Umbenennung vom 2026-08-19 blieb
+       genau so ein zweiter Ort stehen, Bau und Tests blieben gruen, und die Installation
+       zeigte auf einen Ordner, den es nicht gab. Die Klasse ist eine reine Konstantenliste
+       ohne Abhaengigkeiten - sie mitzuuebersetzen kostet nichts. -->
+    <Compile Include="Standalone\Installer\Core\Pfade.cs" />
+  </ItemGroup>
+
+  <!-- ===================== MoonSharp =====================
+       Private=false: die DLL wird NICHT nach bin kopiert und nicht ausgeliefert.
+       Zur Laufzeit kommt sie aus der eingebetteten Ressource (Host\EmbeddedAssemblies.cs).
+       Bewusst UNKOMPRIMIERT eingebettet: die Freigabepruefung (Check-Release.ps1) durchsucht
+       die fertige DLL byteweise nach Namenslecks - ein Deflate-Anhang waere fuer sie blind
+       und wuerde nur ein HINWEIS[UNGEPRUEFT] erzeugen. 350 KB sind den Preis wert. -->
+  <ItemGroup>
+    <!-- ⚠ ThirdParty\ AUS DEN STANDARD-GLOBS NEHMEN. Ohne das zieht das SDK JEDE Datei
+         darunter als <None>-Item ein, MSBuild reicht die DLLs daraus als
+         {CandidateAssemblyFiles} an die Referenzaufloesung weiter - und die loest nach
+         EINFACHEM NAMEN auf, VOR dem HintPath. Hier liegen zwei MoonSharp-Fassungen
+         nebeneinander; alphabetisch gewinnt net40 (signiert) gegen netstandard1.6
+         (unsigniert). Ergebnis war ein gruener Bau, dessen REFERENZ den starken Namen
+         verlangte, waehrend die EINGEBETTETE Fassung keinen hatte:
+             FileLoadException: 'MoonSharp.Interpreter, ... PublicKeyToken=921e73ce94aa17f8'
+             A strongly-named assembly is required. (0x80131044)
+         Sichtbar wurde das erst, als kein anderer Mod mehr eine MoonSharp-Datei mitbrachte -
+         vorher bediente DEREN Kopie die Referenz und unser Resolver feuerte nie. -->
+    <None Remove="ThirdParty\**" />
+    <Content Remove="ThirdParty\**" />
+
+    <Reference Include="MoonSharp.Interpreter">
+      <HintPath>$(MoonSharpDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <EmbeddedResource Include="$(MoonSharpDll)">
+      <LogicalName>ScriptOne.Embedded.MoonSharp.Interpreter.dll</LogicalName>
+    </EmbeddedResource>
+    <!-- Lizenz mitliefern: MoonSharp ist NICHT MIT (BSD-artig, (c) Marco Mastropaolo). -->
+    <EmbeddedResource Include="ThirdParty\MoonSharp.LICENSE.txt">
+      <LogicalName>ScriptOne.Embedded.MoonSharp.LICENSE.txt</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- ⚠ ZUSICHERUNG, nicht Zierde. Der Bau war einmal GRUEN, waehrend Referenz und
+       eingebettete Fassung von MoonSharp verschiedene Dateien waren - der Fehler fiel erst
+       im Spiel als FileLoadException auf, und auch dort nur, wenn kein anderer Mod zufaellig
+       eine passende Kopie mitbrachte. Ein Compiler kann das nicht sehen: beide Dateien
+       heissen gleich und tragen dieselbe Version. Also hier pruefen, wo es billig ist. -->
+  <Target Name="PruefeMoonSharpHerkunft" AfterTargets="ResolveAssemblyReferences">
+    <PropertyGroup>
+      <_MoonSharpSoll>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(MoonSharpDll)'))</_MoonSharpSoll>
+    </PropertyGroup>
+    <ItemGroup>
+      <_MoonSharpIst Include="@(ReferencePath)" Condition="'%(Filename)' == 'MoonSharp.Interpreter'" />
+    </ItemGroup>
+    <Error Condition="'@(_MoonSharpIst)' == ''"
+           Text="MoonSharp.Interpreter wurde gar nicht aufgeloest - erwartet war $(_MoonSharpSoll)." />
+    <Error Condition="'%(_MoonSharpIst.FullPath)' != '$(_MoonSharpSoll)'"
+           Text="MoonSharp KAPERT: uebersetzt wird gegen '%(_MoonSharpIst.FullPath)', eingebettet wird '$(_MoonSharpSoll)'. Zwei verschiedene Dateien - zur Laufzeit gibt das eine FileLoadException (starker Name). Ursache ist fast immer, dass ThirdParty\ wieder in den Standard-Globs haengt und MSBuild nach EINFACHEM NAMEN vor dem HintPath aufloest." />
+  </Target>
+
+  <!-- ===================== MelonLoader / Harmony (beide Backends) ===================== -->
+  <ItemGroup>
+    <Reference Include="MelonLoader">
+      <HintPath>$(MelonLoaderPath)\MelonLoader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <!-- 0Harmony wird bewusst NICHT referenziert: dieser Mod patcht nichts. Er ruft
+       ausschliesslich oeffentliche statische Spielmethoden auf. -->
+
+  <!-- ===================== Auslieferung =====================
+       Der Interpreter nach Plugins\ (Laufzeit, laedt gemessen ~2 s vor Mods\), die Lua-Mods
+       neben die exe nach LuaScripts\. Mods\ bleibt frei fuer das, was wirklich ein Mod ist. -->
+  <Target Name="DeployPluginAndScripts" AfterTargets="Build" Condition="'$(Configuration)' == 'Il2Cpp'">
+    <PropertyGroup>
+      <_PluginDir>$(ScheduleIPath)\Plugins</_PluginDir>
+      <_ScriptDir>$(ScheduleIPath)\$(LuaScriptFolder)</_ScriptDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(_PluginDir);$(_ScriptDir)" />
+    <!-- Altlast aus der Mod-Zeit weg, sonst findet MelonLoader denselben Assemblynamen
+         zweimal und laedt den Wirt doppelt. -->
+    <Delete Files="$(ScheduleIPath)\Mods\$(TargetName).IL2CPP.dll;$(ScheduleIPath)\Mods\$(TargetFileName)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(_PluginDir)\$(TargetName).IL2CPP.dll"
+          OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="500" />
+    <!-- Beispielskripte NIE ueberschreiben - der Nutzer bearbeitet genau diese Dateien. -->
+    <Copy SourceFiles="scripts\movespeed.lua" DestinationFolder="$(_ScriptDir)"
+          Condition="!Exists('$(_ScriptDir)\movespeed.lua')" />
+    <Message Importance="high" Text="[ScriptOne] Interpreter -&gt; Plugins\, Lua-Mods -&gt; $(LuaScriptFolder)\" />
+  </Target>
+
+  <!-- ===================== BannedApiAnalyzers =====================
+       Gemeinsame Sperrliste aller Mods als BUILDFEHLER. Fuer diesen Mod besonders
+       einschlaegig: Type.GetField am Il2Cpp-Proxy gibt IMMER null - und ein Lua-Wirt ist
+       genau die Sorte Code, die in Versuchung fuehrt, Spielmitglieder per Reflection zu
+       suchen statt sie fest zu binden.
+         RS0030 = gesperrte API benutzt     RS0031 = ID doppelt in der Sperrliste
+       Analyzer-only, die Mod-DLL bleibt byte-identisch. Fehlt die Liste, bricht der Bau mit
+       CS2001 ab - kein stilles Gruen.
+       Gegenprobe: .\Check-AnalyzerArmed.ps1 -Mod ScriptOne  (muss "wirksam" melden).
+       KEIN <WarningLevel>0</WarningLevel> in dieser Datei - das wuerde die Diagnosen
+       wegfiltern, BEVOR WarningsAsErrors sie befoerdert, und der Bau bliebe gruen ohne zu
+       pruefen. -->
+  <PropertyGroup>
+    <!-- additiv anhaengen, sonst faellt ein schon gesetzter Wert still weg -->
+    <WarningsAsErrors>$(WarningsAsErrors);RS0030;RS0031</WarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- ===================== Sperrliste: Werkstatt oder eigene =====================
+       ⚠ HIER STAND EIN PFAD AUS DEM REPO HERAUS:
+           <AdditionalFiles Include="..\modding-bulletproof\config\BannedSymbols.txt" />
+       Er loest NUR auf, solange dieses Repo neben modding-bulletproof\ liegt. In einem
+       frischen Klon - und auf jedem CI-Runner - loest er nicht auf, und der Bau bricht mit
+       CS2001 ab, BEVOR irgendein anderer Fehler sichtbar wird. Gemessen 2026-08-19: der
+       Il2Cpp-Bau starb an genau dieser Zeile, waehrend der Preloader daneben aus einem
+       voellig anderen Grund scheiterte (372x CS0246, fehlende Spiel-Assemblies). Wer den
+       ersten Fehler fuer den zweiten haelt, sucht an der falschen Stelle. Das widerspricht
+       ausserdem dem erklaerten Ziel von 66f4297, "damit ein frischer Klon baubar ist".
+
+       DIESELBE LOESUNG WIE FUER Directory.Build.props: die Werkstattdatei, WENN es sie
+       gibt - sonst die eigene unter build\. Damit baut es hier exakt wie vorher und dort
+       ueberhaupt.
+
+       ⚠ build\BannedSymbols.txt ist bewusst KEINE Kopie. Die Werkstattliste ist groesser
+       und bleibt die massgebliche; hier stehen genau die 14 Regeln, die zur Risikoflaeche
+       DIESES Repos gehoeren (Unity-Szenensuche, Type.GetField gegen Il2Cpp-Proxies).
+       Die ZipFile-Regeln der Werkstatt fehlen mit Absicht: gemessen 0 Treffer fuer
+       System.IO.Compression im C#-Bestand, gepackt wird in PowerShell. Eine vollstaendige
+       Kopie waere eine zweite Wahrheit, die veraltet.
+
+       ⚠ ENTWEDER-ODER, nicht beides: identische Doc-IDs aus zwei Dateien melden RS0031,
+       und RS0031 steht oben in WarningsAsErrors.
+       ================================================================================ -->
+  <PropertyGroup>
+    <_WerkstattBanned>$(MSBuildThisFileDirectory)..\modding-bulletproof\config\BannedSymbols.txt</_WerkstattBanned>
+    <_EigeneBanned>$(MSBuildThisFileDirectory)build\BannedSymbols.txt</_EigeneBanned>
+    <ScriptOneEigeneSperrliste Condition="!Exists('$(_WerkstattBanned)')">true</ScriptOneEigeneSperrliste>
+  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="$(_WerkstattBanned)" Condition="'$(ScriptOneEigeneSperrliste)' != 'true'" />
+    <AdditionalFiles Include="$(_EigeneBanned)"    Condition="'$(ScriptOneEigeneSperrliste)' == 'true'" />
+  </ItemGroup>
+
+  <!-- Sichtbar machen, welche Liste griff - ein stiller Unterschied zwischen "baut beim
+       Autor" und "baut beim Fremden" ist genau das, was hier schiefging. Gleiche Bauart
+       wie ZeigeBauumgebung in Directory.Build.props. -->
+  <Target Name="ZeigeSperrliste" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('$(_EigeneBanned)')"
+           Text="build\BannedSymbols.txt fehlt. Ohne sie hat ein frischer Klon KEINE Sperrliste - und ein Analyzer ohne Liste meldet nichts und sieht aus wie bestanden." />
+    <Message Importance="normal" Condition="'$(ScriptOneEigeneSperrliste)' == 'true'"
+             Text="[ScriptOne] Sperrliste: eigene - $(_EigeneBanned)" />
+    <Message Importance="normal" Condition="'$(ScriptOneEigeneSperrliste)' != 'true'"
+             Text="[ScriptOne] Sperrliste: Werkstatt - $(_WerkstattBanned)" />
+  </Target>
+  <!-- Harmonize wird bewusst NICHT eingehaengt: es prueft Harmony-Patchdeklarationen, und
+       dieser Mod hat keine. Siehe Check-HarmonyTargets.ps1 - "Keine [HarmonyPatch]-Klassen". -->
+
+  <!-- ===================== IL2CPP-Referenzen ===================== -->
+  <ItemGroup Condition="'$(Configuration)' == 'Il2Cpp'">
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(MelonLoaderPath)\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(Il2CppAssemblyPath)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppScheduleOne.Core">
+      <HintPath>$(Il2CppAssemblyPath)\Il2CppScheduleOne.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(Il2CppAssemblyPath)\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Player erbt von FishNets NetworkBehaviour; ohne diesen Verweis gibt schon der
+         blosse Null-Vergleich auf Player.Local ein CS0012. -->
+    <Reference Include="Il2CppFishNet.Runtime">
+      <HintPath>$(Il2CppAssemblyPath)\Il2CppFishNet.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(Il2CppAssemblyPath)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- ===================== MONO-Referenzen ===================== -->
+  <!-- Ausgelagert nach build\References.Mono.props: der BepInEx-Adapter baut gegen
+       denselben Quelltext und braucht dieselben vier Referenzen. Zwei Listen waeren
+       beim naechsten Spiel-Update eine gepflegte und eine vergessene. -->
+  <Import Project="build\References.Mono.props" Condition="'$(Configuration)' == 'Mono'" />
+
+</Project>

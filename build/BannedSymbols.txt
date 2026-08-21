@@ -1,0 +1,14 @@
+M:UnityEngine.Object.FindObjectsOfType``1;kostet 100-230 ms pro Aufruf in einer grossen Spielszene - eigene Objekte per Liste fuehren, Szenen-Scan nur beim Szenenladen
+M:UnityEngine.Object.FindObjectsOfType``1(System.Boolean);kostet 100-230 ms pro Aufruf in einer grossen Spielszene - eigene Objekte per Liste fuehren, Szenen-Scan nur beim Szenenladen
+M:UnityEngine.Object.FindObjectOfType``1;kostet 100-230 ms pro Aufruf in einer grossen Spielszene - eigene Objekte per Liste fuehren, Szenen-Scan nur beim Szenenladen
+M:UnityEngine.Object.FindObjectOfType``1(System.Boolean);kostet 100-230 ms pro Aufruf in einer grossen Spielszene - eigene Objekte per Liste fuehren, Szenen-Scan nur beim Szenenladen
+M:UnityEngine.Object.FindObjectsOfType(System.Type);nicht-generische Variante derselben teuren Szenensuche (Mono-Signatur)
+M:UnityEngine.Object.FindObjectsOfType(System.Type,System.Boolean);nicht-generische Variante derselben teuren Szenensuche (Mono-Signatur)
+M:UnityEngine.Object.FindObjectOfType(System.Type);nicht-generische Variante derselben teuren Szenensuche (Mono-Signatur)
+M:UnityEngine.Object.FindObjectOfType(System.Type,System.Boolean);nicht-generische Variante derselben teuren Szenensuche (Mono-Signatur)
+M:UnityEngine.Object.FindObjectsOfType(Il2CppSystem.Type);nicht-generische Variante derselben teuren Szenensuche (Il2Cpp-Signatur)
+M:UnityEngine.Object.FindObjectsOfType(Il2CppSystem.Type,System.Boolean);nicht-generische Variante derselben teuren Szenensuche (Il2Cpp-Signatur)
+M:UnityEngine.Object.FindObjectOfType(Il2CppSystem.Type);nicht-generische Variante derselben teuren Szenensuche (Il2Cpp-Signatur)
+M:UnityEngine.Object.FindObjectOfType(Il2CppSystem.Type,System.Boolean);nicht-generische Variante derselben teuren Szenensuche (Il2Cpp-Signatur)
+M:System.Type.GetField(System.String);gibt gegen Il2Cpp-Proxies IMMER null - Il2CppInterop macht jedes Feld zur Property; mit ?.SetValue wird daraus ein symptomloser Dauerausfall
+M:System.Type.GetField(System.String,System.Reflection.BindingFlags);gibt gegen Il2Cpp-Proxies IMMER null - Il2CppInterop macht jedes Feld zur Property; GetField(..., NonPublic) ohne Instance gibt auf BEIDEN Backends null

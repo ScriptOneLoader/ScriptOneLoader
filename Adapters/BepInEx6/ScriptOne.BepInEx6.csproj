@@ -1,0 +1,135 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Version.props" />
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)..\..\Local.props')" />
+
+  <!--
+    ScriptOne als BepInEx-6-PLUGIN (Il2Cpp).
+
+    WARUM ES DIESEN DRITTEN BAU GIBT
+    Die BepInEx-5-csproj daneben sagt es selbst: "Fuer BepInEx 6 (Il2Cpp) waere es ein dritter
+    Bau gegen BasePlugin statt BaseUnityPlugin; auf dieser Maschine liegt davon kein
+    Binaerstand, also wird er erst gebaut, wenn er gemessen werden kann." Der Binaerstand liegt
+    inzwischen vor: `BepInEx.Unity.IL2CPP` steht im Feed nuget.bepinex.dev mit 80 Fassungen von
+    6.0.0-be.1 bis 6.0.0-be.785.
+
+    ⚠ DIE SUCHE DES FEEDS ZEIGT DAS NICHT. /v3/search liefert nur die neueste STABILE Fassung -
+    und von BepInEx 6 gibt es keine. Wer so sucht, schliesst daraus faelschlich "gibt es nicht".
+    Sichtbar wird der Bestand erst ueber /v3/registration/<id>/index.json.
+
+    ⚠ VORABVERSION HEISST BEWEGLICHES ZIEL. be.785 ist ein Bleeding-Edge-Bau, kein Release.
+    Die Fassung ist deshalb ausdruecklich GEPINNT: ein schwebendes 6.0.0-* wuerde den Bau bei
+    jedem neuen CI-Lauf von BepInEx veraendern, ohne dass hier jemand etwas anfasst.
+
+    UNTERSCHIEDE ZU BepInEx 5, alle aus Runtimes\Unity\BepInEx.Unity.IL2CPP\BasePlugin.cs:
+      * Basisklasse BasePlugin statt BaseUnityPlugin - sie ist KEIN MonoBehaviour.
+      * Einstieg heisst Load(), nicht Awake().
+      * Kein OnUpdate: den Frame-Takt gibt es nur ueber eine injizierte Komponente. BasePlugin
+        bringt dafuer AddComponent<T>() mit, das die Il2Cpp-Typregistrierung selbst erledigt -
+        genau die Stelle, an der der Standalone-Wirt sonst ClassInjector von Hand ruft.
+      * net6.0 statt net472.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Configurations>Il2Cpp</Configurations>
+    <Configuration Condition="'$(Configuration)' == ''">Il2Cpp</Configuration>
+    <AssemblyName>ScriptOne.BepInEx6.IL2CPP</AssemblyName>
+    <RootNamespace>ScriptOne.Adapters.BepInEx6</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants>$(DefineConstants);BEPINEX6</DefineConstants>
+
+    <GenerateMelonInfo>false</GenerateMelonInfo>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);0162;0168;0414;0649;1573;1574;1591</NoWarn>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);https://nuget.bepinex.dev/v3/index.json</RestoreAdditionalProjectSources>
+
+    <!-- Dieselbe Aufloesung wie im Preloader: erst der eigene Erzeugungslauf, sonst
+         MelonLoaders Proxysatz. Fehlt beides, meldet sich das unten als benannter Fehler
+         statt als hunderte CS0246. -->
+    <GamePath Condition="'$(GamePath)' == '' and '$(ScheduleIPath)' != ''">$(ScheduleIPath)</GamePath>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Steam\steamapps\common\Schedule I</GamePath>
+    <Il2CppAssemblies Condition="'$(Il2CppAssemblies)' == '' AND Exists('$(GamePath)\ScriptOne\interopgenerator\Assembly-CSharp.dll')">$(GamePath)\ScriptOne\interopgenerator</Il2CppAssemblies>
+    <Il2CppAssemblies Condition="'$(Il2CppAssemblies)' == '' AND Exists('$(GamePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll')">$(GamePath)\MelonLoader\Il2CppAssemblies</Il2CppAssemblies>
+  </PropertyGroup>
+
+  <Target Name="ScriptOnePruefeIl2CppReferenzen" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(Il2CppAssemblies)' == ''"
+           Text="Il2Cpp proxy assemblies not found. Looked in &quot;$(GamePath)\ScriptOne\interopgenerator&quot; and &quot;$(GamePath)\MelonLoader\Il2CppAssemblies&quot;. Set Il2CppAssemblies (or GamePath) in Local.props." />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.785" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+
+  <!-- ⚠ EINE QUELLE FUER DIE PFADNAMEN. Host\VerwaisterWirt.cs prueft zur Laufzeit, ob eine
+       Standalone-Installation noch starten kann - und braucht dafuer dieselben Ordner- und
+       Dateinamen, die der Installer schreibt. Pfade.cs sagt in seinem eigenen Kopf, warum
+       die nirgends ein zweites Mal stehen duerfen: nach der Umbenennung vom 2026-08-19 blieb
+       genau so ein zweiter Ort stehen, Bau und Tests blieben gruen, und die Installation
+       zeigte auf einen Ordner, den es nicht gab. Die Klasse ist eine reine Konstantenliste
+       ohne Abhaengigkeiten - sie mitzuuebersetzen kostet nichts. -->
+    <Compile Include="..\..\Standalone\Installer\Core\Pfade.cs" LinkBase="Setup" />
+    <Compile Include="..\..\Host\**\*.cs" LinkBase="Host" />
+    <Compile Include="..\..\Game\**\*.cs" LinkBase="Game" />
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <!-- LuaBoot nimmt einen MelonLogger entgegen - der Adapter bringt seinen eigenen Einstieg mit. -->
+  <ItemGroup>
+    <Compile Remove="..\..\Host\LuaBoot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MoonSharp.Interpreter">
+      <HintPath>..\..\ThirdParty\netstandard1.6\MoonSharp.Interpreter.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Die Spiel- und Unity-Proxies. Gleiche Menge wie im Preloader-Il2Cpp-Zweig. -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">          <HintPath>$(Il2CppAssemblies)\Assembly-CSharp.dll</HintPath>          <Private>false</Private></Reference>
+    <Reference Include="Il2CppScheduleOne.Core">   <HintPath>$(Il2CppAssemblies)\Il2CppScheduleOne.Core.dll</HintPath>   <Private>false</Private></Reference>
+    <Reference Include="UnityEngine">              <HintPath>$(Il2CppAssemblies)\UnityEngine.dll</HintPath>              <Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule">   <HintPath>$(Il2CppAssemblies)\UnityEngine.CoreModule.dll</HintPath>   <Private>false</Private></Reference>
+    <Reference Include="Il2Cppmscorlib">           <HintPath>$(Il2CppAssemblies)\Il2Cppmscorlib.dll</HintPath>           <Private>false</Private></Reference>
+    <Reference Include="Il2CppFishNet.Runtime">    <HintPath>$(Il2CppAssemblies)\Il2CppFishNet.Runtime.dll</HintPath>    <Private>false</Private></Reference>
+  </ItemGroup>
+
+  <Target Name="SchreibeBepVersion" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <_BepVersionDatei>$(IntermediateOutputPath)BepVersion.g.cs</_BepVersionDatei>
+    </PropertyGroup>
+    <ItemGroup>
+      <_BepVersionZeile Include="namespace ScriptOne.Adapters.BepInEx6" />
+      <_BepVersionZeile Include="{" />
+      <_BepVersionZeile Include="    internal static class BepVersion" />
+      <_BepVersionZeile Include="    {" />
+      <_BepVersionZeile Include="        internal const string Version = &quot;$(Version)&quot;%3B" />
+      <_BepVersionZeile Include="    }" />
+      <_BepVersionZeile Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_BepVersionDatei)" Lines="@(_BepVersionZeile)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(_BepVersionDatei)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

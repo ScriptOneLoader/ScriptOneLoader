@@ -1,0 +1,95 @@
+<Project>
+
+  <!--
+    ============================================================================
+    WARUM ES DIESE DATEI GIBT
+
+    ScriptOne braucht zwei MSBuild-Targets, die bis zum 2026-08-19 AUSSERHALB des
+    Repos lagen - in der Directory.Build.props der Werkstatt, eine Ebene darueber:
+
+      GenerateMelonInfo        erzeugt [MelonInfo], [MelonGame], [MelonPlatformDomain]
+                               und die Versionsattribute
+      CopyBackendSuffixedDll   schreibt die Auslieferungskopie <Name>.IL2CPP.dll
+
+    Ein Klon des oeffentlichen Repos hatte davon nichts. Das Ergebnis war KEIN Fehler,
+    sondern etwas Schlimmeres: der Bau lief GRUEN durch und lieferte eine DLL ohne
+    [MelonInfo] - die MelonLoader schlicht nicht laedt. Gemessen: in einem frischen
+    Klon ist DirectoryBuildPropsPath leer und 'dotnet msbuild -t:GenerateMelonInfo'
+    gibt MSB4057 ("Ziel nicht vorhanden").
+
+    ============================================================================
+    WIE SIE ES LOEST, OHNE DIE WERKSTATT ZU AENDERN
+
+    MSBuild sucht beim Bauen aufwaerts und nimmt die ERSTE Directory.Build.props, die
+    es findet. Diese Datei hier wuerde die der Werkstatt also VERDECKEN - und ScriptOne
+    verloere alles andere, was dort steht.
+
+    Deshalb: sie importiert die Werkstattfassung, WENN es sie gibt. Nur wenn nicht -
+    also in einem fremden Klon - kommt die Rueckfallfassung unter build\ zum Zug. Damit
+    baut ScriptOne hier exakt wie vorher und dort ueberhaupt.
+
+    ⚠ Die Rueckfallfassung ist bewusst KEINE Kopie der Werkstattdatei. Sie enthaelt
+    genau die zwei Targets und die vier Eigenschaften, die dieses Repo braucht. Alles
+    andere dort (Mods-Kopie, Pfade zu fremden Spielen, Analyzer-Verdrahtung) geht
+    Fremde nichts an und waere hier nur eine zweite Wahrheit, die veraltet.
+    ============================================================================
+  -->
+
+  <PropertyGroup>
+    <!--
+      ⚠ AGENTEN- UND WORKTREE-ORDNER AUS DEN STANDARD-GLOBS NEHMEN.
+      Ein git-Worktree unter .claude\worktrees\ ist eine VOLLSTAENDIGE Kopie des Repos.
+      Das SDK globbt **\*.cs, also uebersetzt es die Kopie MIT - Ergebnis waren 256 Fehler
+      (CS0101 "enthaelt bereits eine Definition", CS0579 doppelte Attribute), und zwar in
+      einem Bau, der Minuten vorher grün war. Die .gitignore hilft NICHT: MSBuild liest sie
+      nicht. Gemessen am 2026-08-19, als eine zweite Instanz hier einen Worktree anlegte.
+    -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);.claude\**;**\.claude\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_WerkstattProps>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</_WerkstattProps>
+    <ScriptOneEigenstaendig Condition="'$(_WerkstattProps)' == '' or !Exists('$(_WerkstattProps)')">true</ScriptOneEigenstaendig>
+  </PropertyGroup>
+
+  <Import Project="$(_WerkstattProps)"
+          Condition="'$(ScriptOneEigenstaendig)' != 'true'" />
+
+  <Import Project="$(MSBuildThisFileDirectory)build\Standalone.props"
+          Condition="'$(ScriptOneEigenstaendig)' == 'true'" />
+
+  <!--
+    ⚠ DIE RECHTEANGABE GEHOERT IN JEDES ARTEFAKT - und sie kann NICHT aus der Werkstattdatei
+    kommen: deren Erzeuger schreibt nur die drei Versionsattribute, und die Werkstattdatei zu
+    aendern wirkt auf ALLE Mods (Hausregel). Also hier, ScriptOne-lokal, als eigene erzeugte
+    Datei. Die Werte kommen aus Version.props - eine Quelle, kein zweiter Ort zum Pflegen.
+
+    Warum eine erzeugte Datei und keine handgeschriebene AssemblyInfo.cs: getippt waere sie die
+    eine Stelle, die beim naechsten Namens- oder Versionswechsel niemand anfasst.
+  -->
+  <Target Name="ScriptOneRechte" BeforeTargets="BeforeCompile"
+          Condition="'$(Copyright)' != '' and '$(GenerateAssemblyInfo)' != 'true'">
+    <PropertyGroup>
+      <_RechteDatei>$(IntermediateOutputPath)Rechte.g.cs</_RechteDatei>
+    </PropertyGroup>
+    <ItemGroup>
+      <_RechteZeile Include="// Auto-generated from Version.props - do not edit." />
+      <_RechteZeile Include="[assembly: System.Reflection.AssemblyCompany(&quot;$(Authors)&quot;)]" />
+      <_RechteZeile Include="[assembly: System.Reflection.AssemblyCopyright(&quot;$(Copyright)&quot;)]" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_RechteDatei)" Lines="@(_RechteZeile)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(_RechteDatei)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Sichtbar machen, welcher Weg gegriffen hat. Ein stiller Unterschied zwischen
+       "baut beim Autor" und "baut beim Fremden" ist genau das, was hier schiefging. -->
+  <Target Name="ZeigeBauumgebung" BeforeTargets="CoreCompile">
+    <Message Importance="normal" Condition="'$(ScriptOneEigenstaendig)' == 'true'"
+             Text="[ScriptOne] eigenstaendiger Bau - build\Standalone.props" />
+    <Message Importance="normal" Condition="'$(ScriptOneEigenstaendig)' != 'true'"
+             Text="[ScriptOne] Werkstatt-Bau - $(_WerkstattProps)" />
+  </Target>
+
+</Project>

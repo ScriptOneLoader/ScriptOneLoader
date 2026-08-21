@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Die zentrale Version, wie alles andere. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\..\..\Version.props" />
+
+  <!--
+    ⚠ net472 IST DIE ENTSCHEIDUNG, nicht die Bequemlichkeit: .NET Framework 4.7.2 liegt auf
+    jedem Windows 10 ab 1803 und auf jedem Windows 11. Ein Setup, das erst eine Laufzeit
+    verlangt, ist beim Mod-Nutzer genau das Problem, das es loesen soll - besonders hier, wo
+    der haeufigste Abbruchgrund eine FEHLENDE .NET-6-Laufzeit ist.
+  -->
+  <PropertyGroup>
+    <!-- ⚠ DAS DATEISYMBOL kommt aus DERSELBEN Geometrie wie das Zeichen im Fenster.
+         Erzeugt von tools\Make-Icon.ps1 - eine daneben gepflegte .ico waere eine
+         zweite Wahrheit, und im Explorer saehe man dann das alte Zeichen. -->
+    <ApplicationIcon>..\Installer\ScriptOne.ico</ApplicationIcon>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>ScriptOne-Setup</AssemblyName>
+    <RootNamespace>ScriptOne.Setup</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- Kein PDB-Pfad in einer ausgelieferten Datei - er traegt den Benutzernamen des Bauenden. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <!-- Kein MelonInfo: das hier ist kein Mod. -->
+    <MelonModName></MelonModName>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <Product>ScriptOne Setup</Product>
+    <Company>Virtunerd</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\Core\*.cs" />
+  </ItemGroup>
+
+</Project>

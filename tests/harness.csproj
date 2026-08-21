@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ============================================================
+       Prueft ScriptOne OHNE Spiel und ohne MelonLoader.
+
+       Uebersetzt werden die ECHTEN Wirt-Dateien aus ..\Host\ - nur Game\GameBridge.cs
+       wird durch FakeGameBridge.cs ersetzt. Damit laeuft das echte scripts\movespeed.lua
+       durch den echten Interpreter, und geprueft wird, was tatsaechlich an der
+       Spielgrenze ankommt.
+
+       Das geht nur, weil der Wirt ueber IScriptLog vom Loader und ueber GameBridge vom
+       Spiel getrennt ist - dieselbe Trennung, die S1Lua ueber IS1LuaHost zieht.
+
+           dotnet run -c Release  (aus dem Ordner tests\)
+       ============================================================ -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>ScriptOne.Tests</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);0649</NoWarn>
+    <ModRoot>..</ModRoot>
+    <!-- kein Deploy in den Spielordner, das ist kein Mod -->
+    <SkipCopyToGame>true</SkipCopyToGame>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(ModRoot)\Host\LuaEngine.cs" />
+    <!-- GameGate ist die NAHT zum Spiel und gehoert damit in die Bank - sie ist genau
+         das, was hier geprueft werden soll. Fehlte sie, brach der Bau mit 12x CS0103. -->
+    <Compile Include="$(ModRoot)\Host\GameGate.cs" />
+    <!-- Die datengetriebene Flaeche gehoert genauso in die Bank: sie ist Kern, nennt keinen
+         Spieltyp und ist per Attrappe pruefbar. (Und genau hier ist mir derselbe Fehler ein
+         zweites Mal passiert - erst GameGate, dann diese drei. Wer eine Datei in den Kern
+         legt, traegt sie HIER mit ein; kein Bau erinnert daran.) -->
+    <Compile Include="$(ModRoot)\Host\RuntimeSurface.cs" />
+    <Compile Include="$(ModRoot)\Host\SurfaceScan.cs" />
+    <Compile Include="$(ModRoot)\Host\SurfacePlan.cs" />
+    <Compile Include="$(ModRoot)\Host\SurfacePolicy.cs" />
+    <Compile Include="$(ModRoot)\Host\HostGuard.cs" />
+    <Compile Include="$(ModRoot)\Host\ExecutionBudget.cs" />
+    <Compile Include="$(ModRoot)\Host\IScriptLog.cs" />
+    <Compile Include="$(ModRoot)\Host\Timers.cs" />
+    <Compile Include="$(ModRoot)\Host\ScriptStore.cs" />
+    <Compile Include="$(ModRoot)\Host\ApiReference.cs" />
+    <Compile Include="$(ModRoot)\Host\ConsolePolicy.cs" />
+    <Compile Include="$(ModRoot)\Host\HostSchalter.cs" />
+    <Compile Include="$(ModRoot)\Host\TaktWache.cs" />
+    <Compile Include="$(ModRoot)\Host\HostConfig.cs" />
+    <Compile Include="$(ModRoot)\Host\VerwaisterWirt.cs" />
+    <Compile Include="$(ModRoot)\Standalone\Installer\Core\Pfade.cs" />
+    <Compile Include="FakeGameBridge.cs" />
+    <Compile Include="Harness.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Die Ordnerstruktur libs\<tfm>\MoonSharp.Interpreter.dll ist Absicht: der DATEIname
+         muss dem ASSEMBLYnamen entsprechen. Lag die Datei als
+         MoonSharp.Interpreter.netstandard16.dll da, uebersetzte alles sauber, aber der Lauf
+         starb mit FileNotFoundException - unter net6.0 entscheidet die deps.json, und die
+         traegt den Assemblynamen, nicht den Dateinamen. -->
+    <Reference Include="MoonSharp.Interpreter">
+      <HintPath>$(ModRoot)\ThirdParty\netstandard1.6\MoonSharp.Interpreter.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

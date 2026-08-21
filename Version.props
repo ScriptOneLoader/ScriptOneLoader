@@ -1,0 +1,27 @@
+<Project>
+
+  <!--
+    DIE Version von ScriptOne - eine Zahl fuer alles, was aus diesem Repo herausgeht.
+
+    WARUM ZENTRAL: vorher stand sie zweimal (Plugin 0.1.0, Preloader 0.2.0). Beide sind
+    Teil DERSELBEN Auslieferung, und in der README stand eine Nummer, die fuer die
+    Haelfte des Umfangs nicht galt. Zwei Zahlen, die dasselbe meinen, laufen auseinander -
+    das ist keine Vermutung, es war der Zustand.
+
+    Geprueft wird das von tools\Check-Versionen.ps1: es fragt MSBuild nach dem AUFGELOESTEN
+    Wert je Projekt, nicht nach dem Text in der Datei - ein Projekt, das diese Datei nicht
+    importiert, faellt damit auf.
+  -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+
+    <!-- Und die Urheberangabe, aus demselben Grund an derselben Stelle: sie gehoert in JEDES
+         Artefakt, das dieses Repo verlaesst, und sie soll nicht in vier csproj gepflegt werden.
+         Sichtbar wird sie in den Dateieigenschaften unter "Copyright". Company steht dort
+         teilweise schon einzeln - das bleibt, weil ein Projekt einen abweichenden Produktnamen
+         haben darf (z. B. "ScriptOne Installer"), die Rechteangabe aber nicht. -->
+    <Copyright>Copyright (c) Virtunerd</Copyright>
+    <Authors>Virtunerd</Authors>
+  </PropertyGroup>
+
+</Project>

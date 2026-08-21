@@ -1,0 +1,9 @@
+# Zeilenenden vereinheitlichen. Ohne diese Datei meldet Git bei jedem Commit
+# "LF will be replaced by CRLF" und der Diff eines Klons auf einem anderen System
+# zeigt Aenderungen, die niemand gemacht hat.
+* text=auto eol=lf
+
+# Binaerdateien nie anfassen - eine Zeilenenden-Umwandlung wuerde sie zerstoeren.
+*.dll  binary
+*.png  binary
+*.zip  binary

@@ -1,0 +1,235 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Version.props" />
+
+  <!-- Maschinenpfade: siehe Local.props.example im Wurzelverzeichnis. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Local.props" Condition="Exists('$(MSBuildThisFileDirectory)..\..\Local.props')" />
+
+  <!-- ============================================================
+       ScriptOne Standalone - Lua in Schedule I OHNE MelonLoader.
+
+       Der Aufbau ist von BepInEx 6 abgeschaut (Rezeptur, kein Quelltext -
+       BepInEx ist LGPL). Die Bausteine gehoeren ohnehin niemandem der beiden
+       Loader:
+         UnityDoorstop  (NeighTools)   - nativer Einstieg, startet CoreCLR
+         Il2CppInterop  (BepInEx-Org)  - NuGet, verwaltete Sicht auf Il2Cpp
+         Cpp2IL         (SamboyCoding) - MIT, erzeugt die Proxy-Assemblies
+
+       WAS HIER LAEUFT
+       Doorstop laedt CoreCLR und ruft Doorstop.Entrypoint.Start(). Von dort:
+         1. Il2CppInterop starten (die Proxy-Assemblies liegen schon vor)
+         2. il2cpp_runtime_invoke detouren und auf 'Internal_ActiveSceneChanged'
+            warten - das ist der erste Zeitpunkt, zu dem die Laufzeit steht UND
+            wir auf dem Unity-Hauptfaden sind
+         3. den Lua-Wirt starten, danach den Detour wieder aushaengen
+
+       WAS NICHT GEBRAUCHT WIRD
+       Keine MelonLoader-Referenz. Der Wirt haengt ueber IScriptLog am Logging
+       und ueber GameBridge am Spiel - beides bereits so geschnitten. Genau
+       deshalb laesst sich derselbe Quelltext hier ohne eine Zeile Aenderung
+       uebersetzen.
+       ============================================================ -->
+
+  <PropertyGroup>
+    <!-- ============================================================
+         PUNKT 3: EIN Standalone, kein "waehle deine Variante".
+
+         Doorstop traegt BEIDE Laufzeitpfade in DERSELBEN winhttp.dll - per Bytesuche
+         belegt: mono_jit_init_version @0x4530 UND coreclr_initialize @0x48B8, und der
+         Einstiegsname ist in beiden Faellen 'Doorstop.Entrypoint:Start'. Welcher Pfad
+         laeuft, entscheidet das SPIEL, nicht wir.
+         Was NICHT beides kann, ist eine einzelne Assembly: net6.0 laeuft auf CoreCLR,
+         Unitys Mono braucht net472. Also zwei Baue aus EINEM Quellstand, und der
+         Installer zeigt target_assembly auf den passenden. Fuer den Nutzer bleibt es
+         ein Paket ohne Auswahl.
+         ============================================================ -->
+    <TargetFrameworks>net6.0;net472</TargetFrameworks>
+    <AssemblyName>ScriptOne.Preloader</AssemblyName>
+    <RootNamespace>ScriptOne.Preloader</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <NoWarn>$(NoWarn);0162;0168;0414;0649;1591</NoWarn>
+    <!-- IL2CPP schaltet in GameBridge/EventBridge die Il2Cpp-Typaliase scharf. -->
+    <DefineConstants>$(DefineConstants);STANDALONE</DefineConstants>
+    <!-- Directory.Build.props der Werkstatt erzeugt MelonInfo-Attribute; hier unerwuenscht. -->
+    <MelonModName></MelonModName>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <GeneratePlatformDomainAttribute>false</GeneratePlatformDomainAttribute>
+    <!-- ⚠ OHNE DIESE ZEILE TRAEGT DIE DLL 0.0.0.0 - von Check-Release.ps1 als BEFUND gemeldet.
+         Grund ist eine Kettenreaktion aus zwei Vorgaben, die einzeln richtig sind:
+           Directory.Build.props setzt GenerateAssemblyInfo=false (das SDK soll nichts erzeugen,
+           weil die Werkstatt die Attribute selbst aus <Version> stempelt), und dieser Stempel
+           haengt am Target GenerateMelonInfo mit Condition MelonModName != ''.
+         Dieses Projekt hat bewusst KEINEN MelonModName - es ist kein Mod. Damit laeuft der
+         Stempel nicht, und da auch das SDK nichts erzeugt, bleibt gar nichts uebrig.
+         Hier wieder einschalten statt Attribute von Hand zu schreiben: so bleibt <Version>
+         die EINZIGE Stelle, an der die Nummer steht. -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <!-- Das SDK haengt sonst '+<git-sha>' an die InformationalVersion. Die Werkstattregel
+         lautet: in den Dateieigenschaften steht die Mod-Version, sonst nichts. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <ScriptOneRoot>$(MSBuildThisFileDirectory)..\..</ScriptOneRoot>
+    <GamePath Condition="'$(GamePath)' == ''">C:\Steam\steamapps\common\Schedule I</GamePath>
+  </PropertyGroup>
+
+  <!-- net6.0 = Il2Cpp (CoreCLR), net472 = Mono. Die Konstante schaltet in
+       GameBridge/EventBridge die Typaliase um - derselbe Quelltext, andere Namensraeume. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <DefineConstants>$(DefineConstants);IL2CPP</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+    <DefineConstants>$(DefineConstants);MONO</DefineConstants>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <!-- ===================== eigener Code ===================== -->
+  <ItemGroup>
+    <Compile Include="*.cs" />
+    <!-- Il2Cpp-only: Detour-Unterbau, Interop-Start, Klasseninjektion. Auf Mono gibt es
+         nichts davon - dort ist ein MonoBehaviour einfach ein MonoBehaviour. -->
+    <Compile Remove="DetourProvider.cs"   Condition="'$(TargetFramework)' == 'net472'" />
+    <Compile Remove="Il2CppBootstrap.cs"  Condition="'$(TargetFramework)' == 'net472'" />
+    <Compile Remove="InteropLog.cs"       Condition="'$(TargetFramework)' == 'net472'" />
+    <Compile Remove="TickBehaviour.cs"    Condition="'$(TargetFramework)' == 'net472'" />
+    <!-- StandaloneHost haengt den Frame-Takt per KLASSENINJEKTION ein; auf Mono uebernimmt
+         das MonoTick als ganz gewoehnliche Komponente. -->
+    <Compile Remove="StandaloneHost.cs"   Condition="'$(TargetFramework)' == 'net472'" />
+    <Compile Remove="MonoBootstrap.cs"    Condition="'$(TargetFramework)' == 'net6.0'" />
+    <!-- Der Wirt, unveraendert aus dem Plugin-Projekt uebernommen.
+         LuaBoot.cs und ScriptOnePlugin.cs bleiben DRAUSSEN - nur die beiden
+         nennen MelonLoader. -->
+    <!-- ⚠ GLOB STATT HANDLISTE. Hier standen die Kerndateien einzeln - und eine neue Datei im
+         Kern fehlte damit STILL in diesem Projekt, waehrend der Mod-Bau daneben gruen blieb.
+         Gemessen 2026-08-19: Host\GameGate.cs neu angelegt, Mod baut, Preloader bricht mit
+         8x CS0103 "Der Name GameGate ist im aktuellen Kontext nicht vorhanden" - und zwar erst
+         beim Packen, weil nur dort publiziert wird. Der Kern gehoert BEIDEN Zweigen; was NICHT
+         mitgeht, ist die Ausnahme und wird deshalb namentlich entfernt.
+         LuaBoot.cs ist die einzige echte Ausnahme: sie nimmt einen MelonLogger entgegen.
+         (Erwaehnungen von MelonLoader in KOMMENTAREN anderer Kerndateien sind keine
+         Abhaengigkeit - danach zu filtern waere falsch.) -->
+
+  <!-- ⚠ EINE QUELLE FUER DIE PFADNAMEN. Host\VerwaisterWirt.cs prueft zur Laufzeit, ob eine
+       Standalone-Installation noch starten kann - und braucht dafuer dieselben Ordner- und
+       Dateinamen, die der Installer schreibt. Pfade.cs sagt in seinem eigenen Kopf, warum
+       die nirgends ein zweites Mal stehen duerfen: nach der Umbenennung vom 2026-08-19 blieb
+       genau so ein zweiter Ort stehen, Bau und Tests blieben gruen, und die Installation
+       zeigte auf einen Ordner, den es nicht gab. Die Klasse ist eine reine Konstantenliste
+       ohne Abhaengigkeiten - sie mitzuuebersetzen kostet nichts. -->
+    <Compile Include="$(ScriptOneRoot)\Standalone\Installer\Core\Pfade.cs" />
+    <Compile Include="$(ScriptOneRoot)\Host\*.cs" />
+    <Compile Remove="$(ScriptOneRoot)\Host\LuaBoot.cs" />
+    <Compile Include="$(ScriptOneRoot)\Host\Generated\GeneratedSurface.g.cs" />
+    <Compile Include="$(ScriptOneRoot)\Game\GameBridge.cs" />
+    <Compile Include="$(ScriptOneRoot)\Game\EventBridge.cs" />
+  </ItemGroup>
+
+  <!-- ===================== MoonSharp, wie im Plugin eingebettet ===================== -->
+  <PropertyGroup>
+    <!-- MoonSharp 2.0.0 liegt in zwei Baufassungen bei; netstandard1.6 laedt unter
+         CoreCLR, net40-client unter Unitys Mono. Gleiche Fassung, gleiche API. -->
+    <MoonSharpTfm Condition="'$(TargetFramework)' == 'net472'">net40</MoonSharpTfm>
+    <MoonSharpTfm Condition="'$(MoonSharpTfm)' == ''">netstandard1.6</MoonSharpTfm>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="MoonSharp.Interpreter">
+      <HintPath>$(ScriptOneRoot)\ThirdParty\$(MoonSharpTfm)\MoonSharp.Interpreter.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <EmbeddedResource Include="$(ScriptOneRoot)\ThirdParty\$(MoonSharpTfm)\MoonSharp.Interpreter.dll">
+      <LogicalName>ScriptOne.Embedded.MoonSharp.Interpreter.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(ScriptOneRoot)\ThirdParty\MoonSharp.LICENSE.txt">
+      <LogicalName>ScriptOne.Embedded.MoonSharp.LICENSE.txt</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- ===================== Il2Cpp-Unterbau =====================
+       Il2CppInterop kommt von NuGet, nicht aus MelonLoaders Ordner - das ist der
+       Unterschied zwischen "benutzt dieselbe Bibliothek" und "haengt an MelonLoader".
+       MonoMod.RuntimeDetour statt Dobby/Funchook: rein verwaltet, keine native
+       Fremd-DLL, die ein Virenscanner anspringt. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="Il2CppInterop.Runtime" Version="1.5.1" />
+    <!-- Traegt AddLogger. Kam bisher nur transitiv herein; ohne ausdrueckliche
+         Referenz findet der Compiler die Erweiterungsmethode nicht (CS1061). -->
+    <PackageReference Include="Il2CppInterop.Common" Version="1.5.1" />
+    <PackageReference Include="Il2CppInterop.HarmonySupport" Version="1.5.1" />
+    <PackageReference Include="MonoMod.RuntimeDetour" Version="25.3.6" />
+  </ItemGroup>
+
+  <!-- ===================== die erzeugten Spiel-Proxies =====================
+       Fuer den ERSTEN lauffaehigen Stand werden die bereits erzeugten Assemblies
+       mitbenutzt. Sie referenzieren nachweislich KEINE MelonLoader-Assembly (an
+       allen 134 per Cecil geprueft) - es sind Erzeugnisse von Cpp2IL und
+       Il2CppInterop, die nur zufaellig in MelonLoaders Ordner liegen.
+       Der eigene Erzeugungslauf ist der naechste Schritt, nicht dieser. -->
+  <PropertyGroup>
+    <!-- EIGENER Ordner. Der fruehere Pfad zeigte in MelonLoaders Verzeichnis - beim ersten
+         Bau nach dessen Entfernung gab das 178 CS0246, weil die REFERENZEN ins Leere zeigten
+         und damit der ganze Namensraum Il2CppScheduleOne fehlte. Ein toter HintPath meldet
+         sich als Code-Fehler, nicht als Pfad-Fehler. -->
+    <!-- ZWEI Quellen, in dieser Reihenfolge, und beide werden auf EXISTENZ geprueft statt
+         blind gesetzt:
+           1. der eigene Erzeugungslauf (nur vorhanden, wenn ScriptOne hier standalone
+              installiert ist),
+           2. MelonLoaders Satz - dieselben Proxies, nur von einem anderen Erzeuger.
+         WARNUNG: Vorher stand hier nur (1), ohne Existenzpruefung. Wer ScriptOne nicht
+         standalone installiert hatte, bekam 419x CS0246 in Game\*.cs - eine Meldung ueber
+         angeblich fehlende TYPEN, waehrend in Wahrheit ein PFAD ins Leere zeigte. Und weil
+         MSBuild bei unveraenderten Eingaben gar nicht erst uebersetzt, blieb der Bruch
+         hinter einem stehengebliebenen obj\ monatelang unsichtbar: das Paket wurde aus
+         einem Zwischenstand gepackt und meldete "Done". Deshalb unten der harte Abbruch -
+         eine fehlende Referenz muss sich als solche melden, nicht als Codefehler. -->
+    <Il2CppAssemblies Condition="'$(Il2CppAssemblies)' == '' AND Exists('$(GamePath)\ScriptOne\interopgenerator\Assembly-CSharp.dll')">$(GamePath)\ScriptOne\interopgenerator</Il2CppAssemblies>
+    <Il2CppAssemblies Condition="'$(Il2CppAssemblies)' == '' AND Exists('$(GamePath)\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll')">$(GamePath)\MelonLoader\Il2CppAssemblies</Il2CppAssemblies>
+  </PropertyGroup>
+
+  <Target Name="ScriptOnePruefeIl2CppReferenzen" BeforeTargets="ResolveAssemblyReferences"
+          Condition="'$(TargetFramework)' == 'net6.0'">
+    <Error Condition="'$(Il2CppAssemblies)' == ''"
+           Text="Il2Cpp proxy assemblies not found. Looked in &quot;$(GamePath)\ScriptOne\interopgenerator&quot; and &quot;$(GamePath)\MelonLoader\Il2CppAssemblies&quot;. Set Il2CppAssemblies (or GamePath) in Local.props. Without this the compiler reports hundreds of CS0246 about Il2CppScheduleOne, which looks like a code fault and is not one." />
+    <Error Condition="!Exists('$(Il2CppAssemblies)\Assembly-CSharp.dll')"
+           Text="Il2CppAssemblies points at &quot;$(Il2CppAssemblies)&quot;, but there is no Assembly-CSharp.dll there." />
+  </Target>
+  <PropertyGroup>
+    <!-- Auf Mono sind die SPIEL-DLLs die Referenz; es gibt nichts zu erzeugen. -->
+    <!-- Ohne Local.props leer: der Mono-Zweig meldet dann MSB3245 + CS0246, statt still
+         gegen einen Pfad zu bauen, den es auf diesem Rechner gar nicht gibt. -->
+    <MonoManagedPath Condition="'$(MonoManagedPath)' == ''"></MonoManagedPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="Assembly-CSharp">   <HintPath>$(MonoManagedPath)\Assembly-CSharp.dll</HintPath>   <Private>false</Private></Reference>
+    <Reference Include="UnityEngine">        <HintPath>$(MonoManagedPath)\UnityEngine.dll</HintPath>        <Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(MonoManagedPath)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="FishNet.Runtime">    <HintPath>$(MonoManagedPath)\FishNet.Runtime.dll</HintPath>    <Private>false</Private></Reference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(Il2CppAssemblies)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppScheduleOne.Core">
+      <HintPath>$(Il2CppAssemblies)\Il2CppScheduleOne.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(Il2CppAssemblies)\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppFishNet.Runtime">
+      <HintPath>$(Il2CppAssemblies)\Il2CppFishNet.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(Il2CppAssemblies)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

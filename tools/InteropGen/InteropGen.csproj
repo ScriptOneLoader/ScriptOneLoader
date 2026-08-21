@@ -1,0 +1,154 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Version.props" />
+
+  <!-- ============================================================
+       InteropGen - erzeugt die Il2Cpp-Proxy-Assemblies fuer ScriptOne SELBST.
+
+       WARUM ES DAS BRAUCHT
+       Ohne diesen Schritt haengt der Standalone-Zweig an einem fremden Ordner
+       (MelonLoaders Il2CppAssemblies oder einem Dekompilat). Das hat drei Folgen,
+       die alle erst spaet auffallen:
+         1. Ein frischer Klon ist nicht baubar.
+         2. Nach einem Spiel-Update passen die Proxies nicht mehr - und das meldet
+            NICHTS: der Bau bleibt gruen (er uebersetzt gegen denselben Ordner, der
+            auch laeuft) und zur Laufzeit kommt keine Ausnahme, nur Wirkungslosigkeit.
+         3. Ausliefern darf man sie ohnehin nicht - sie entstehen aus den Spieldateien
+            des Nutzers.
+
+       DIE KETTE, wie sie MelonLoader und BepInEx auch gehen:
+         GameAssembly.dll + global-metadata.dat
+           -> Cpp2IL              (liest die Il2Cpp-Metadaten, baut Attrappen-Assemblies)
+           -> Il2CppInterop.Gen   (macht daraus benutzbare verwaltete Proxies)
+           -> ScriptOne\interopgenerator\
+
+       Cpp2IL und der Generator reichen die Assemblies IM SPEICHER weiter
+       (BuildAssemblies -> GeneratorOptions.Source) - keine Zwischendateien.
+
+       VERSIONEN, und warum genau diese:
+         Samboy063.Cpp2IL.Core 2022.1.0-development.1452
+             BepInEx ist am 2026-08-18 ausdruecklich auf diese Fassung ZURUECK-
+             gegangen ("Revert Cpp2IL back to development.1452 because of
+             regressions"). Nicht ungeprueft hochsetzen.
+         Il2CppInterop.Generator 1.5.1-ci.845
+             Muss zur Il2CppInterop.Runtime des Wirts passen (1.5.1). Der Generator
+             hat EIGENE Fassungsnummern (ci-Builds) - 1.5.1 gibt es dort nicht als
+             glatte Nummer, .845 ist die letzte 1.5.1-*.
+         Beide referenzieren AsmResolver 6.0.0.0 - geprueft, kein Konflikt. Genau
+         daran scheitert diese Art Werkzeug sonst.
+       ============================================================ -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- ⚠ net6.0, NICHT net8.0: der Il2Cpp-Zweig setzt ohnehin eine .NET-6-Laufzeit voraus
+         (ohne sie bricht der Installer ab). Ein net8-Werkzeug fuegte dem Nutzer eine ZWEITE
+         Laufzeit-Voraussetzung hinzu, ein net6-Werkzeug keine einzige. -->
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>InteropGen</AssemblyName>
+    <RootNamespace>ScriptOne.InteropGen</RootNamespace>
+    <Nullable>disable</Nullable>
+
+    <!-- ⚠ SONST STEHT DER MASCHINENPFAD DES ENTWICKLERS IN DER AUSGELIEFERTEN DLL.
+         Ohne diese Zeile schreibt Roslyn den absoluten Pfad der .pdb in die Assembly
+         (RSDS-Eintrag). Jedes ANDERE ausgelieferte Projekt hier setzt das laengst - dieses
+         war die einzige Luecke, und sie fiel nicht auf, weil der Generator im Installer
+         MITREIST und niemand die Nutzlast durchsuchte. Gefunden am 2026-08-21 von der
+         Leck-Suche in Make-Package.ps1, beim allerersten Lauf: "InteropGen.dll : user name
+         'Hendrik'". Die Datei war zu dem Zeitpunkt bereits oeffentlich hochgeladen. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Die Werkstatt-Vorlage stempelt MelonInfo-Attribute; das hier ist kein Mod. -->
+    <MelonModName></MelonModName>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <NoWarn>$(NoWarn);NU1701;NU1702;CS1591</NoWarn>
+    <RestoreAdditionalProjectSources>https://nuget.samboy.dev/v3/index.json;https://nuget.bepinex.dev/v3/index.json</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Muss zur Unity-Fassung des SPIELS passen. Das Werkzeug prueft das zur Laufzeit
+         und bricht bei Abweichung ab, statt stillschweigend Falsches zu erzeugen. -->
+    <UnityModulesVersion Condition="'$(UnityModulesVersion)' == ''">2022.3.62</UnityModulesVersion>
+  </PropertyGroup>
+
+  <!--
+    ⚠ FREMDE LAUFZEITEN FLIEGEN RAUS - und zwar GEMESSEN, nicht aus Sparsamkeit.
+    Cpp2IL zieht ueber AssetRipper.Gee.External.Capstone neun native Bibliotheken mit,
+    zusammen 49,4 der 51,68 MiB des Publish: drei fuer Linux, zwei fuer macOS, dazu
+    win-arm64 und win-x86. Auf einem Windows-x64-Spiel wird KEINE davon geladen - capstone
+    bedient in Cpp2IL ausschliesslich den ARM-Pfad, waehrend der x86-64-Pfad Iced benutzt.
+    Nachgemessen: derselbe Erzeugungslauf OHNE jede native capstone-Datei liefert 136 DLLs,
+    61.432.320 Byte, Exitcode 0 - dasselbe Ergebnis. 51,68 MiB -> 4,61 MiB.
+
+    ⚠ WARUM ALS ZIEL UND NICHT PER RuntimeIdentifier: ein RID schiebt die Ausgabe in einen
+    RID-Unterordner. tools\Update-Interop.ps1 setzt den Werkzeugpfad aber OHNE RID-Segment
+    zusammen und faende das Werkzeug nicht mehr - und weil dort ein ALTER Bau liegenbleibt,
+    schlaegt sein Test-Path trotzdem an und es liefe still das veraltete Binaer weiter.
+    Genau die Falle, vor der Update-Interop.ps1 in seinem eigenen Kopf warnt (und die dort
+    am 2026-08-19 schon einmal zugeschlagen hat). Ein Ziel aendert nur den KOPIERSATZ,
+    nicht den Ausgabeort - der Aufrufer bleibt unangetastet.
+
+    ⚠ WAS DAMIT WEGFAELLT: der ARM64/ARMv7-Pfad von Cpp2IL. Fuer ein Windows-Spiel
+    belanglos, und der Ausfall waere laut (DllNotFoundException), nicht still. Wer ScriptOne
+    je auf ARM oder Linux/macOS bringen will, nimmt dieses Ziel wieder heraus - die
+    Begruendung und die Messwerte stehen in NEXT.md, Abschnitt "Platforms".
+  -->
+  <Target Name="ScriptOneOhneFremdeLaufzeiten" AfterTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+          Remove="@(ReferenceCopyLocalPaths)"
+          Condition="$([System.String]::Copy('%(ReferenceCopyLocalPaths.Identity)').Contains('runtimes'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    ⚠ ZWEI ZIELE, WEIL BAU UND PUBLISH VERSCHIEDENE LISTEN FUEHREN. Das Ziel oben raeumt
+    ReferenceCopyLocalPaths und wirkt damit auf 'dotnet build'. 'dotnet publish' stellt seine
+    Dateiliste aber getrennt als ResolvedFileToPublish zusammen - ein Bau war danach 4,61 MiB
+    und der Publish trotzdem wieder 51,68 MiB.
+
+    Gemessen und GEFANGEN am 2026-08-20, und zwar von der Zusicherung im Packskript
+    ("foreign runtimes are back in the generator: 9 files"), nicht von einem Menschen. Ohne
+    sie waere das Auslieferungspaket still um 47 MB gewachsen - der Bau war ja gruen.
+  -->
+  <Target Name="ScriptOneOhneFremdeLaufzeitenBeimPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish
+          Remove="@(ResolvedFileToPublish)"
+          Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('runtimes'))" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Samboy063.Cpp2IL.Core" Version="2022.1.0-development.1452" />
+    <PackageReference Include="Il2CppInterop.Generator" Version="1.5.1-ci.845" />
+    <PackageReference Include="UnityEngine.Modules" Version="$(UnityModulesVersion)" GeneratePathProperty="true" ExcludeAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Der Pfad zu den Unity-Basisbibliotheken wird IN DIE DLL gestempelt. Ihn zur
+       Laufzeit zu raten waere die naechste stille Fehlerquelle. -->
+  <!-- ⚠ DIESER PFAD ZEIGT AUF DEN NUGET-ZWISCHENSPEICHER DES ENTWICKLERS und enthaelt damit
+       dessen BENUTZERNAMEN. Er ist ausdruecklich nur ein Rueckfall fuer den Autorenbetrieb
+       (siehe Program.cs) - auf einem fremden Rechner existiert der Ordner nicht,
+       Directory.Exists schlaegt fehl und er wird nie benutzt. Er reiste also NUTZLOS im
+       ausgelieferten Installer mit und trug den Namen nach draussen.
+
+       Gefunden am 2026-08-21 von der Leck-Suche in Make-Package.ps1, beim allerersten Lauf -
+       nachdem die Datei bereits oeffentlich hochgeladen war. KEIN Build-Schalter haette das
+       gefangen: es ist kein PDB-Pfad, sondern ein AssemblyMetadata-Attribut, und
+       DebugType=none fasst so etwas nicht an.
+
+       Das Packskript setzt ScriptOneShipping=true - damit faellt der Stempel im
+       Auslieferungsbau weg und bleibt im lokalen Bau erhalten. -->
+  <ItemGroup Condition="'$(ScriptOneShipping)' != 'true'">
+    <AssemblyMetadata Include="UnityBaseLibs" Value="$(PkgUnityEngine_Modules)\lib\netstandard2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="UnityModulesVersion" Value="$(UnityModulesVersion)" />
+  </ItemGroup>
+
+</Project>

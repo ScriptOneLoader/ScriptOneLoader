@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)..\..\..\Version.props" />
+
+  <!-- net472 aus demselben Grund wie beim Setup: liegt auf jedem Windows 10/11, verlangt
+       nichts nach. Ein Installer, der eine Laufzeit voraussetzt, hat schon verloren. -->
+  <PropertyGroup>
+    <!-- ⚠ DAS DATEISYMBOL kommt aus DERSELBEN Geometrie wie das Zeichen im Fenster.
+         Erzeugt von tools\Make-Icon.ps1 - eine daneben gepflegte .ico waere eine
+         zweite Wahrheit, und im Explorer saehe man dann das alte Zeichen. -->
+    <ApplicationIcon>ScriptOne.ico</ApplicationIcon>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>ScriptOne-Installer</AssemblyName>
+    <RootNamespace>ScriptOne.Setup</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <MelonModName></MelonModName>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <Product>ScriptOne Installer</Product>
+    <Company>Virtunerd</Company>
+    <!-- Steht sonst als Assemblyname im SmartScreen-Dialog und in den Dateieigenschaften. -->
+    <AssemblyTitle>ScriptOne Installer</AssemblyTitle>
+    <StartupObject>ScriptOne.Setup.Anwendung</StartupObject>
+
+    <!-- ⚠ OHNE DIESE ZEILE IST AutoScaleMode.Dpi IN MainForm.cs WIRKUNGSLOS. Begruendung und
+         die offene Pruefung stehen in app.manifest selbst. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)..\Core\*.cs" />
+    <!-- ⚠ DIE KONFIGURATIONSVORLAGE GEHOERT DEM WIRT, NICHT DEM INSTALLER. Der Installer
+         soll die Datei aber ANLEGEN, damit der Nutzer seine Schalter sieht, BEVOR er das
+         Spiel zum ersten Mal startet (vorher entstand sie erst im Wirt - der Autor nannte
+         das zu Recht ein Nogo). Statt eine zweite Vorlage zu schreiben, wird die eine
+         mituebersetzt: eine Vorlage, zwei Erzeuger, kein Auseinanderlaufen. -->
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Host\HostConfig.cs"    LinkBase="Host" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Host\ConsolePolicy.cs" LinkBase="Host" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Host\SurfacePolicy.cs" LinkBase="Host" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Host\SurfacePlan.cs"   LinkBase="Host" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\..\Host\IScriptLog.cs"    LinkBase="Host" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
+  <!-- Die Nutzlast wird von Standalone\Make-Package.ps1 erzeugt und liegt dann hier.
+       Ohne sie baut der Installer trotzdem - er sagt dann, dass er keine hat, statt
+       beim Klick zu scheitern. -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)payload.zip')">
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)payload.zip">
+      <LogicalName>ScriptOne.Setup.payload.zip</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,741 @@
+{
+  "_hinweis": "Die Lua-Namen sind ein VERTRAG mit den Skripten. Diese Karte haelt sie fest, auch wenn das Spiel seine Member umbenennt: dann aendert sich hier der Zielname und kein Nutzerskript bricht. Erzeugt mit Gen-Bindings.ps1 -UpdateMap.",
+  "erzeugt": "2026-08-18 12:29:36",
+  "tabellen": {
+    "arrest_notice_screen": {
+      "clr": "ArrestNoticeScreen",
+      "member": {
+        "exit": "Exit",
+        "is_open": "isOpen",
+        "open": "Open",
+        "record_crimes": "RecordCrimes"
+      }
+    },
+    "body_search_screen": {
+      "clr": "BodySearchScreen",
+      "member": {
+        "close": "Close",
+        "close_tutorial": "CloseTutorial",
+        "is_open": "IsOpen",
+        "tutorial_open": "TutorialOpen"
+      }
+    },
+    "character_creator": {
+      "clr": "CharacterCreator",
+      "member": {
+        "close": "Close",
+        "disable_stuff": "DisableStuff",
+        "done": "Done",
+        "is_open": "IsOpen",
+        "refresh_category": "RefreshCategory",
+        "select_preset": "SelectPreset",
+        "slider_changed": "SliderChanged"
+      }
+    },
+    "curfew": {
+      "clr": "CurfewManager",
+      "member": {
+        "disable": "Disable",
+        "is_currently_active": "IsCurrentlyActive",
+        "is_enabled": "IsEnabled",
+        "is_hard_curfew_active": "IsHardCurfewActive"
+      }
+    },
+    "customization": {
+      "clr": "CustomizationManager",
+      "member": {
+        "create_settings": "CreateSettings",
+        "eyebrow_resting_angle_changed": "EyebrowRestingAngleChanged",
+        "eyebrow_resting_height_changed": "EyebrowRestingHeightChanged",
+        "eyebrow_scale_changed": "EyebrowScaleChanged",
+        "eyebrow_thickness_changed": "EyebrowThicknessChanged",
+        "gender_changed": "GenderChanged",
+        "height_changed": "HeightChanged",
+        "load_settings": "LoadSettings",
+        "lower_eye_lid_resting_position_changed": "LowerEyeLidRestingPositionChanged",
+        "pupil_dilation_changed": "PupilDilationChanged",
+        "upper_eye_lid_resting_position_changed": "UpperEyeLidRestingPositionChanged",
+        "weight_changed": "WeightChanged"
+      }
+    },
+    "daily_summary": {
+      "clr": "DailySummary",
+      "member": {
+        "add_dealer_money": "AddDealerMoney",
+        "add_player_money": "AddPlayerMoney",
+        "add_sold_item": "AddSoldItem",
+        "add_xp": "AddXP",
+        "close": "Close",
+        "is_open": "IsOpen",
+        "open": "Open",
+        "xp_gained": "xpGained"
+      }
+    },
+    "environment_fx": {
+      "clr": "EnvironmentFX",
+      "member": {
+        "fog_end_distance_multiplier": "FogEndDistanceMultiplier",
+        "normalized_environmental_brightness": "normalizedEnvironmentalBrightness",
+        "set_environment_scrolling_active": "SetEnvironmentScrollingActive",
+        "set_environment_scrolling_speed_by_percentage": "SetEnvironmentScrollingSpeedByPercentage"
+      }
+    },
+    "game": {
+      "clr": "GameManager",
+      "member": {
+        "end_tutorial": "EndTutorial",
+        "is_tutorial": "IS_TUTORIAL",
+        "seed": "Seed"
+      }
+    },
+    "game_input": {
+      "clr": "GameInput",
+      "member": {
+        "current_input_device": "CurrentInputDevice",
+        "current_platform_type": "CurrentPlatformType",
+        "exit_all": "ExitAll",
+        "get_button": "GetButton",
+        "get_button_down": "GetButtonDown",
+        "get_button_up": "GetButtonUp",
+        "get_current_input_device": "GetCurrentInputDevice",
+        "get_current_input_device_is_gamepad": "GetCurrentInputDeviceIsGamepad",
+        "get_current_input_device_is_keyboard_mouse": "GetCurrentInputDeviceIsKeyboardMouse",
+        "is_typing": "IsTyping",
+        "mouse_scroll_delta": "MouseScrollDelta",
+        "ui_map_zoom_axis": "UIMapZoomAxis",
+        "ui_modify_amount_increment_tier_one_axis": "UIModifyAmountIncrementTierOneAxis",
+        "ui_modify_amount_increment_tier_three_axis": "UIModifyAmountIncrementTierThreeAxis",
+        "ui_modify_amount_increment_tier_two_axis": "UIModifyAmountIncrementTierTwoAxis",
+        "ui_scrollbar_axis": "UIScrollbarAxis",
+        "ui_tab_navigation_primary_axis": "UITabNavigationPrimaryAxis",
+        "ui_tab_navigation_secondary_axis": "UITabNavigationSecondaryAxis",
+        "ui_tab_navigation_tertiary_axis": "UITabNavigationTertiaryAxis",
+        "vehicle_drive_axis": "VehicleDriveAxis"
+      }
+    },
+    "gamepad_pointer": {
+      "clr": "GamepadPointer",
+      "member": {
+        "debug_toggle_active": "DebugToggleActive",
+        "is_rotation_input_active": "IsRotationInputActive",
+        "move_to_screen_center": "MoveToScreenCenter",
+        "revert_pointer_data": "RevertPointerData",
+        "set_active": "SetActive",
+        "set_aim_assist": "SetAimAssist",
+        "set_pointer_data": "SetPointerData",
+        "set_pointer_locked": "SetPointerLocked",
+        "set_rotation_input_check_active": "SetRotationInputCheckActive",
+        "set_sensitivity": "SetSensitivity",
+        "set_to_snap_handler": "SetToSnapHandler"
+      }
+    },
+    "gameplay_menu": {
+      "clr": "GameplayMenu",
+      "member": {
+        "character_screen_enabled": "CharacterScreenEnabled",
+        "close": "Close",
+        "current_screen": "CurrentScreen",
+        "is_open": "IsOpen",
+        "open": "Open",
+        "set_screen": "SetScreen"
+      }
+    },
+    "gameplay_menu_interface": {
+      "clr": "GameplayMenuInterface",
+      "member": {
+        "character_clicked": "CharacterClicked",
+        "close": "Close",
+        "open": "Open",
+        "phone_clicked": "PhoneClicked",
+        "set_selected": "SetSelected"
+      }
+    },
+    "generic_selection_module": {
+      "clr": "GenericSelectionModule",
+      "member": {
+        "cancel": "Cancel",
+        "chosen_option_index": "ChosenOptionIndex",
+        "close": "Close",
+        "is_open": "isOpen"
+      }
+    },
+    "graffiti_menu": {
+      "clr": "GraffitiMenu",
+      "member": {
+        "clear_active_surface": "ClearActiveSurface",
+        "close": "Close",
+        "open": "Open",
+        "show_confirm_panel": "ShowConfirmPanel",
+        "update_remaining_paint_indicator": "UpdateRemainingPaintIndicator"
+      }
+    },
+    "handover_screen": {
+      "clr": "HandoverScreen",
+      "member": {
+        "clear_customer_slots": "ClearCustomerSlots",
+        "close": "Close",
+        "done_pressed": "DonePressed",
+        "is_open": "IsOpen",
+        "test_open": "TestOpen"
+      }
+    },
+    "heatmap": {
+      "clr": "HeatmapManager",
+      "member": {
+        "run_dispatch_heatmap": "RunDispatchHeatmap",
+        "set_all_heatmaps_active": "SetAllHeatmapsActive",
+        "set_heatmap_active": "SetHeatmapActive",
+        "turn_off_all_heatmaps": "TurnOffAllHeatmaps",
+        "turn_on_all_heatmaps": "TurnOnAllHeatmaps"
+      }
+    },
+    "hint_display": {
+      "clr": "HintDisplay",
+      "member": {
+        "hide": "Hide",
+        "is_open": "IsOpen",
+        "queue_hint": "QueueHint",
+        "queue_hint_10s": "QueueHint_10s",
+        "queue_hint_20s": "QueueHint_20s",
+        "show_hint": "ShowHint",
+        "show_hint_10s": "ShowHint_10s",
+        "show_hint_20s": "ShowHint_20s"
+      }
+    },
+    "hospital_bill_screen": {
+      "clr": "HospitalBillScreen",
+      "member": {
+        "close": "Close",
+        "is_open": "isOpen",
+        "on_close": "OnClose",
+        "open": "Open"
+      }
+    },
+    "hud": {
+      "clr": "HUD",
+      "member": {
+        "hide_firearm_reticle": "HideFirearmReticle",
+        "hide_top_screen_text": "HideTopScreenText",
+        "set_black_overlay_visible": "SetBlackOverlayVisible",
+        "set_crosshair_visible": "SetCrosshairVisible",
+        "set_firearm_reticle": "SetFirearmReticle",
+        "show_firearm_reticle": "ShowFirearmReticle",
+        "show_radial_indicator": "ShowRadialIndicator",
+        "show_top_screen_text": "ShowTopScreenText"
+      }
+    },
+    "input_prompts": {
+      "clr": "InputPromptsManager",
+      "member": {
+        "debug_load_module": "DebugLoadModule",
+        "debug_unload_module": "DebugUnloadModule",
+        "get_display_name_for_control_path": "GetDisplayNameForControlPath",
+        "has_active_prompt": "HasActivePrompt",
+        "load_module": "LoadModule",
+        "show_hide_active_prompt": "ShowHideActivePrompt",
+        "unload_module": "UnloadModule",
+        "update_display_text_override": "UpdateDisplayTextOverride"
+      }
+    },
+    "interaction": {
+      "clr": "InteractionManager",
+      "member": {
+        "can_destroy": "CanDestroy",
+        "interact_key_str": "InteractKeyStr",
+        "is_anything_blocking_interaction": "IsAnythingBlockingInteraction",
+        "set_can_destroy": "SetCanDestroy"
+      }
+    },
+    "item_ui": {
+      "clr": "ItemUIManager",
+      "member": {
+        "controller_discard_slot": "ControllerDiscardSlot",
+        "controller_drag_add_quantity": "ControllerDragAddQuantity",
+        "controller_drag_subtract_quantity": "ControllerDragSubtractQuantity",
+        "controller_grab_all_slot": "ControllerGrabAllSlot",
+        "controller_quick_move_slot": "ControllerQuickMoveSlot",
+        "controller_quick_move_slot_single": "ControllerQuickMoveSlotSingle",
+        "controller_toggle_tooltip": "ControllerToggleTooltip",
+        "disable_quick_move": "DisableQuickMove",
+        "dragging_enabled": "DraggingEnabled",
+        "is_currently_dragging": "IsCurrentlyDragging",
+        "is_dragging_cash": "IsDraggingCash",
+        "is_hovering_slot": "IsHoveringSlot",
+        "quick_move_enabled": "QuickMoveEnabled",
+        "set_dragging_enabled": "SetDraggingEnabled"
+      }
+    },
+    "law": {
+      "clr": "LawController",
+      "member": {
+        "change_internal_intensity": "ChangeInternalIntensity",
+        "end_override": "EndOverride",
+        "override_settings": "OverrideSettings",
+        "set_internal_intensity": "SetInternalIntensity"
+      }
+    },
+    "level": {
+      "clr": "LevelManager",
+      "member": {
+        "add_xp": "AddXP",
+        "get_xp_for_tier": "GetXPForTier",
+        "rank": "Rank",
+        "tier": "Tier",
+        "total_xp": "TotalXP",
+        "xp": "XP",
+        "xp_to_next_tier": "XPToNextTier"
+      }
+    },
+    "load": {
+      "clr": "LoadManager",
+      "member": {
+        "debug_mode": "DebugMode",
+        "default_tutorial_save_folder": "DefaultTutorialSaveFolder",
+        "get_load_status_text": "GetLoadStatusText",
+        "is_game_loaded": "IsGameLoaded",
+        "is_in_game_scene": "IsInGameScene",
+        "is_loading": "IsLoading",
+        "load_as_client": "LoadAsClient",
+        "load_last_save": "LoadLastSave",
+        "load_status": "LoadStatus",
+        "load_tutorial_as_client": "LoadTutorialAsClient",
+        "loaded_game_folder_path": "LoadedGameFolderPath",
+        "refresh_save_info": "RefreshSaveInfo",
+        "set_waiting_for_host_load": "SetWaitingForHostLoad",
+        "time_since_game_loaded": "TimeSinceGameLoaded"
+      }
+    },
+    "lobby": {
+      "clr": "Lobby",
+      "member": {
+        "create_lobby": "CreateLobby",
+        "get_session_connection_identifier": "GetSessionConnectionIdentifier",
+        "is_host": "IsHost",
+        "is_in_lobby": "IsInLobby",
+        "is_session_ready_for_client": "IsSessionReadyForClient",
+        "leave_lobby": "LeaveLobby",
+        "lobby_id": "LobbyID",
+        "player_count": "PlayerCount",
+        "send_lobby_message": "SendLobbyMessage",
+        "set_lobby_data": "SetLobbyData",
+        "try_open_invite_interface": "TryOpenInviteInterface"
+      }
+    },
+    "lobby_interface": {
+      "clr": "LobbyInterface",
+      "member": {
+        "detach_from_screen": "DetachFromScreen",
+        "invite_clicked": "InviteClicked",
+        "leave_clicked": "LeaveClicked",
+        "set_visible": "SetVisible"
+      }
+    },
+    "management_clipboard": {
+      "clr": "ManagementClipboard",
+      "member": {
+        "close": "Close",
+        "close_and_preserve_state": "CloseAndPreserveState",
+        "is_open": "IsOpen",
+        "state_preserved": "StatePreserved"
+      }
+    },
+    "management_worldspace_canvas": {
+      "clr": "ManagementWorldspaceCanvas",
+      "member": {
+        "close": "Close",
+        "hide_crosshair_prompt": "HideCrosshairPrompt",
+        "is_open": "IsOpen",
+        "open": "Open",
+        "show_crosshair_prompt": "ShowCrosshairPrompt"
+      }
+    },
+    "messages_app": {
+      "clr": "MessagesApp",
+      "member": {
+        "clear_filter": "ClearFilter",
+        "filter_by_category": "FilterByCategory",
+        "refresh_notifications": "RefreshNotifications",
+        "reposition_entries": "RepositionEntries",
+        "return_button_clicked": "ReturnButtonClicked",
+        "set_open": "SetOpen"
+      }
+    },
+    "money": {
+      "clr": "MoneyManager",
+      "member": {
+        "cash_balance": "cashBalance",
+        "change_cash_balance": "ChangeCashBalance",
+        "change_lifetime_earnings": "ChangeLifetimeEarnings",
+        "check_networth_achievements": "CheckNetworthAchievements",
+        "create_online_transaction": "CreateOnlineTransaction",
+        "format_amount": "FormatAmount",
+        "get_net_worth": "GetNetWorth",
+        "last_calculated_networth": "LastCalculatedNetworth",
+        "lifetime_earnings": "LifetimeEarnings",
+        "play_cash_sound": "PlayCashSound"
+      }
+    },
+    "music": {
+      "clr": "MusicManager",
+      "member": {
+        "is_any_track_playing": "IsAnyTrackPlaying",
+        "set_music_distorted": "SetMusicDistorted",
+        "set_track_enabled": "SetTrackEnabled",
+        "stop_and_disable_tracks": "StopAndDisableTracks",
+        "stop_track": "StopTrack"
+      }
+    },
+    "new_mix_screen": {
+      "clr": "NewMixScreen",
+      "member": {
+        "close": "Close",
+        "confirm_button_clicked": "ConfirmButtonClicked",
+        "is_open": "IsOpen",
+        "on_name_value_changed": "OnNameValueChanged",
+        "randomize_button_clicked": "RandomizeButtonClicked"
+      }
+    },
+    "packaging_station_canvas": {
+      "clr": "PackagingStationCanvas",
+      "member": {
+        "begin_button_pressed": "BeginButtonPressed",
+        "close": "Close",
+        "repeat_packaging_task": "RepeatPackagingTask",
+        "set_mode": "SetMode",
+        "toggle_mode": "ToggleMode"
+      }
+    },
+    "pause_menu": {
+      "clr": "PauseMenu",
+      "member": {
+        "is_paused": "IsPaused",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stuck_button_clicked": "StuckButtonClicked"
+      }
+    },
+    "pawn_shop_interface": {
+      "clr": "PawnShopInterface",
+      "member": {
+        "accept_or_counter": "AcceptOrCounter",
+        "cancel": "Cancel",
+        "close": "Close",
+        "is_open": "IsOpen",
+        "npc_anger": "NPCAnger",
+        "open": "Open",
+        "set_player_response": "SetPlayerResponse",
+        "start_button_pressed": "StartButtonPressed"
+      }
+    },
+    "phone": {
+      "clr": "Phone",
+      "member": {
+        "flashlight_on": "FlashlightOn",
+        "is_any_app_open": "IsAnyAppOpen",
+        "is_horizontal": "isHorizontal",
+        "is_open": "IsOpen",
+        "is_openable": "isOpenable",
+        "request_close_app": "RequestCloseApp",
+        "scaled_look_offset": "ScaledLookOffset",
+        "set_is_active_gameplay_screen": "SetIsActiveGameplayScreen",
+        "set_is_horizontal": "SetIsHorizontal",
+        "set_is_open": "SetIsOpen",
+        "set_look_offset_multiplier": "SetLookOffsetMultiplier"
+      }
+    },
+    "pickpocket_screen": {
+      "clr": "PickpocketScreen",
+      "member": {
+        "close": "Close",
+        "close_tutorial": "CloseTutorial",
+        "is_open": "IsOpen",
+        "set_slot_locked": "SetSlotLocked",
+        "tutorial_open": "TutorialOpen"
+      }
+    },
+    "player_camera": {
+      "clr": "PlayerCamera",
+      "member": {
+        "active_ui_element_count": "ActiveUIElementCount",
+        "add_active_ui_element": "AddActiveUIElement",
+        "anti_aliasing_mode": "AntiAliasingMode",
+        "apply_aa_settings": "ApplyAASettings",
+        "camera_mode": "CameraMode",
+        "can_look": "CanLook",
+        "cocaine_visuals": "CocaineVisuals",
+        "fov_jitter": "FovJitter",
+        "free_cam_enabled": "FreeCamEnabled",
+        "free_mouse": "FreeMouse",
+        "get_target_local_y": "GetTargetLocalY",
+        "is01": "Is01",
+        "jolt_camera": "JoltCamera",
+        "lock_mouse": "LockMouse",
+        "meth_visuals": "MethVisuals",
+        "override_fov": "OverrideFOV",
+        "remove_active_ui_element": "RemoveActiveUIElement",
+        "reset_rotation": "ResetRotation",
+        "set_antialiasing_mode": "SetAntialiasingMode",
+        "set_camera_mode": "SetCameraMode",
+        "set_can_look": "SetCanLook",
+        "set_do_f_active": "SetDoFActive",
+        "set_free_cam": "SetFreeCam",
+        "start_camera_shake": "StartCameraShake",
+        "stop_camera_shake": "StopCameraShake",
+        "stop_focus": "StopFocus",
+        "stop_fov_override": "StopFOVOverride",
+        "stop_transform_override": "StopTransformOverride",
+        "update_camera_bob": "UpdateCameraBob",
+        "viewing_avatar": "ViewingAvatar"
+      }
+    },
+    "player_inventory": {
+      "clr": "PlayerInventory",
+      "member": {
+        "clear_inventory": "ClearInventory",
+        "current_equip_time": "CurrentEquipTime",
+        "detach_from_screen": "DetachFromScreen",
+        "equipped_slot_changed": "EquippedSlotChanged",
+        "equipped_slot_index": "EquippedSlotIndex",
+        "equipping_enabled": "EquippingEnabled",
+        "get_amount_of_item": "GetAmountOfItem",
+        "holster_enabled": "HolsterEnabled",
+        "hotbar_enabled": "HotbarEnabled",
+        "is_anything_equipped": "isAnythingEquipped",
+        "reequip": "Reequip",
+        "remove_amount_of_item": "RemoveAmountOfItem",
+        "remove_product_from_inventory": "RemoveProductFromInventory",
+        "remove_random_items_from_inventory": "RemoveRandomItemsFromInventory",
+        "set_equipping_enabled": "SetEquippingEnabled",
+        "set_inventory_enabled": "SetInventoryEnabled",
+        "set_management_clipboard_enabled": "SetManagementClipboardEnabled",
+        "set_viewmodel_visible": "SetViewmodelVisible"
+      }
+    },
+    "player_movement": {
+      "clr": "PlayerMovement",
+      "member": {
+        "add_sprint_blocker": "AddSprintBlocker",
+        "can_jump": "CanJump",
+        "can_move": "CanMove",
+        "change_stamina": "ChangeStamina",
+        "current_sprint_multiplier": "CurrentSprintMultiplier",
+        "current_stamina_reserve": "CurrentStaminaReserve",
+        "dismount_ladder": "DismountLadder",
+        "force_sprint": "ForceSprint",
+        "is_crouched": "IsCrouched",
+        "is_grounded": "IsGrounded",
+        "is_jumping": "IsJumping",
+        "is_on_ladder": "IsOnLadder",
+        "is_ragdolled": "IsRagdolled",
+        "is_sprinting": "IsSprinting",
+        "jump": "Jump",
+        "move_speed_multiplier": "MoveSpeedMultiplier",
+        "remove_sprint_blocker": "RemoveSprintBlocker",
+        "set_crouched": "SetCrouched",
+        "set_stamina": "SetStamina",
+        "standing_scale": "StandingScale",
+        "time_airborne": "TimeAirborne",
+        "time_grounded": "TimeGrounded",
+        "warp_to_nav_mesh": "WarpToNavMesh"
+      }
+    },
+    "post_processing": {
+      "clr": "PostProcessingManager",
+      "member": {
+        "override_vignette": "OverrideVignette",
+        "print_value_of_psychedelic_effect_blend": "PrintValueOfPsychedelicEffectBlend",
+        "reset_vignette": "ResetVignette",
+        "set_bloom_threshold": "SetBloomThreshold",
+        "set_blur": "SetBlur",
+        "set_contrast": "SetContrast",
+        "set_god_ray_intensity": "SetGodRayIntensity",
+        "set_psychedelic_effect_active": "SetPsychedelicEffectActive",
+        "set_saturation": "SetSaturation"
+      }
+    },
+    "product": {
+      "clr": "ProductManager",
+      "member": {
+        "cocaine_discovered": "CocaineDiscovered",
+        "discover_product": "DiscoverProduct",
+        "finish_and_name_mix": "FinishAndNameMix",
+        "is_accepting_orders": "IsAcceptingOrders",
+        "is_mix_complete": "IsMixComplete",
+        "is_mix_name_valid": "IsMixNameValid",
+        "is_mixing_in_progress": "IsMixingInProgress",
+        "make_id_file_safe": "MakeIDFileSafe",
+        "meth_discovered": "MethDiscovered",
+        "send_mix_recipe": "SendMixRecipe",
+        "send_price": "SendPrice",
+        "set_cocaine_discovered": "SetCocaineDiscovered",
+        "set_is_accepting_order": "SetIsAcceptingOrder",
+        "set_meth_discovered": "SetMethDiscovered",
+        "set_product_favourited": "SetProductFavourited",
+        "set_product_listed": "SetProductListed",
+        "set_shrooms_discovered": "SetShroomsDiscovered",
+        "shrooms_discovered": "ShroomsDiscovered",
+        "time_since_product_listing_changed": "TimeSinceProductListingChanged"
+      }
+    },
+    "quest": {
+      "clr": "QuestManager",
+      "member": {
+        "play_complete_quest_entry_sound": "PlayCompleteQuestEntrySound",
+        "play_complete_quest_sound": "PlayCompleteQuestSound",
+        "print_quest_states": "PrintQuestStates",
+        "send_quest_action": "SendQuestAction",
+        "send_quest_entry_state": "SendQuestEntryState",
+        "send_quest_state": "SendQuestState"
+      }
+    },
+    "region_unlocked_canvas": {
+      "clr": "RegionUnlockedCanvas",
+      "member": {
+        "end_event": "EndEvent",
+        "is_running": "IsRunning",
+        "order": "Order",
+        "queue_unlocked": "QueueUnlocked",
+        "start_event": "StartEvent"
+      }
+    },
+    "replication_queue": {
+      "clr": "ReplicationQueue",
+      "member": {
+        "current_replication_task": "CurrentReplicationTask",
+        "get_replication_duration": "GetReplicationDuration",
+        "local_player_replication_timed_out": "LocalPlayerReplicationTimedOut",
+        "replication_done_for_local_player": "ReplicationDoneForLocalPlayer"
+      }
+    },
+    "save_manager": {
+      "clr": "SaveManager",
+      "member": {
+        "access_permission_issue_detected": "AccessPermissionIssueDetected",
+        "backup_folder_path": "BackupFolderPath",
+        "check_save_folder_initialized": "CheckSaveFolderInitialized",
+        "get_version_number": "GetVersionNumber",
+        "has_write_permission_on_dir": "HasWritePermissionOnDir",
+        "individual_saves_container_path": "IndividualSavesContainerPath",
+        "is_saving": "IsSaving",
+        "make_file_safe": "MakeFileSafe",
+        "players_save_path": "PlayersSavePath",
+        "report_save_error": "ReportSaveError",
+        "sanitize_file_name": "SanitizeFileName",
+        "save": "Save",
+        "save_name": "SaveName",
+        "seconds_since_last_save": "SecondsSinceLastSave",
+        "strip_extensions": "StripExtensions"
+      }
+    },
+    "settings": {
+      "clr": "Settings",
+      "member": {
+        "christmas_event_active": "ChristmasEventActive",
+        "get_action_control_path": "GetActionControlPath",
+        "look_sensitivity": "LookSensitivity",
+        "pausing_freezes_time": "PausingFreezesTime",
+        "reload_audio_settings": "ReloadAudioSettings",
+        "reload_gamepad_settings": "ReloadGamepadSettings",
+        "reload_graphics_settings": "ReloadGraphicsSettings",
+        "reload_input_settings": "ReloadInputSettings",
+        "reload_other_settings": "ReloadOtherSettings",
+        "restore_default_gamepad_bindings": "RestoreDefaultGamepadBindings",
+        "restore_default_keyboard_bindings": "RestoreDefaultKeyboardBindings",
+        "unit_type": "UnitType"
+      }
+    },
+    "sewer": {
+      "clr": "SewerManager",
+      "member": {
+        "has_sewer_king_been_defeated": "HasSewerKingBeenDefeated",
+        "is_random_world_key_collected": "IsRandomWorldKeyCollected",
+        "is_sewer_unlocked": "IsSewerUnlocked",
+        "random_sewer_key_location_index": "RandomSewerKeyLocationIndex",
+        "random_sewer_possessor_index": "RandomSewerPossessorIndex",
+        "set_random_world_key_collected": "SetRandomWorldKeyCollected",
+        "set_sewer_unlocked_server": "SetSewerUnlocked_Server"
+      }
+    },
+    "sleep_canvas": {
+      "clr": "SleepCanvas",
+      "member": {
+        "is_menu_open": "IsMenuOpen",
+        "open_menu": "OpenMenu",
+        "queue_sleep_message": "QueueSleepMessage",
+        "queued_sleep_message": "QueuedSleepMessage"
+      }
+    },
+    "task": {
+      "clr": "TaskManager",
+      "member": {
+        "end_task": "EndTask",
+        "is_task_active": "IsTaskActive",
+        "play_task_complete_sound": "PlayTaskCompleteSound",
+        "time_on_last_task_end": "TimeOnLastTaskEnd"
+      }
+    },
+    "time": {
+      "clr": "TimeManager",
+      "member": {
+        "add_minutes_to24_hour_time": "AddMinutesTo24HourTime",
+        "current_day": "CurrentDay",
+        "current_time": "CurrentTime",
+        "daily_min_sum": "DailyMinSum",
+        "day_index": "DayIndex",
+        "default_time": "DefaultTime",
+        "elapsed_days": "ElapsedDays",
+        "get_min_sum_from24_hour_time": "GetMinSumFrom24HourTime",
+        "get_minutes_to_display_time": "GetMinutesToDisplayTime",
+        "get_total_min_sum": "GetTotalMinSum",
+        "get12_hour_time": "Get12HourTime",
+        "get24_hour_time_from_min_sum": "Get24HourTimeFromMinSum",
+        "host_sleep_done": "HostSleepDone",
+        "is_current_time_within_range": "IsCurrentTimeWithinRange",
+        "is_end_of_day": "IsEndOfDay",
+        "is_given_time_within_range": "IsGivenTimeWithinRange",
+        "is_night": "IsNight",
+        "is_sleep_in_progress": "IsSleepInProgress",
+        "is_valid24_hour_time": "IsValid24HourTime",
+        "minute_duration": "MinuteDuration",
+        "normalized_time_of_day": "NormalizedTimeOfDay",
+        "playtime": "Playtime",
+        "set_cycle_duration": "SetCycleDuration",
+        "set_host_sleep_done": "SetHostSleepDone",
+        "set_time_and_sync": "SetTimeAndSync",
+        "set_time_speed_multiplier": "SetTimeSpeedMultiplier",
+        "start_sleep": "StartSleep",
+        "time_speed_multiplier": "TimeSpeedMultiplier"
+      }
+    },
+    "ui_screen": {
+      "clr": "UIScreenManager",
+      "member": {
+        "close_popup_screen": "ClosePopupScreen",
+        "has_active_screen": "HasActiveScreen",
+        "is_active_screen_registered_for_back": "IsActiveScreenRegisteredForBack",
+        "is_any_popup_screen_active": "IsAnyPopupScreenActive",
+        "is_any_screen_active": "IsAnyScreenActive",
+        "is_back_triggered_this_frame": "IsBackTriggeredThisFrame",
+        "open_popup_screen": "OpenPopupScreen"
+      }
+    },
+    "variable_database": {
+      "clr": "VariableDatabase",
+      "member": {
+        "notify_item_acquired": "NotifyItemAcquired",
+        "print_all_variables": "PrintAllVariables",
+        "print_variable_value": "PrintVariableValue",
+        "set_variable_value": "SetVariableValue"
+      }
+    },
+    "vehicle_mod_menu": {
+      "clr": "VehicleModMenu",
+      "member": {
+        "close": "Close",
+        "color_clicked": "ColorClicked",
+        "confirm_button_clicked": "ConfirmButtonClicked",
+        "is_open": "IsOpen"
+      }
+    }
+  }
+}

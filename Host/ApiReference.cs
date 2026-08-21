@@ -1,0 +1,233 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using MoonSharp.Interpreter;
+
+namespace ScriptOne.Host
+{
+    /// <summary>
+    /// Schreibt eine Referenz dessen, was ein Skript in DIESEM Spiel aufrufen kann -
+    /// nach <c>ScriptOne\documentation\</c>.
+    /// </summary>
+    /// <remarks>
+    /// WARUM DAS DER WIRT MACHT UND NICHT EIN MENSCH: die Flaeche wird je Spiel ERZEUGT.
+    /// Eine von Hand gepflegte Referenz waere schon beim naechsten Spiel falsch und beim
+    /// naechsten Spiel-Update veraltet. Hier wird stattdessen die FERTIG INSTALLIERTE
+    /// Lua-Tabelle abgelaufen - was drinsteht, ist damit per Konstruktion das, was auch
+    /// wirklich aufrufbar ist. Es gibt keinen Weg, wie Referenz und Wirklichkeit
+    /// auseinanderlaufen koennen.
+    ///
+    /// Das ist zugleich die Antwort auf "was kann ich hier ueberhaupt modden?" - bei einem
+    /// fremden Unity-Spiel ist genau das die erste Frage, und niemand kann sie vorher
+    /// beantworten.
+    ///
+    /// ⚠ Was hier NICHT steht, und warum: die ARGUMENTE. MoonSharp gibt fuer eine
+    /// CLR-Funktion weder Stelligkeit noch Parameternamen her - beides existiert zur
+    /// Laufzeit nicht mehr. Statt zu raten wird das ausdruecklich gesagt und auf die
+    /// Editor-Stubs verwiesen. Eine erfundene Signatur waere schlimmer als keine.
+    ///
+    /// Alles hier ist ENGLISCH: es landet beim Nutzer.
+    /// </remarks>
+    internal static class ApiReference
+    {
+        /// <summary>Kernnamen - stehen in der Referenz vor den erzeugten Tabellen.</summary>
+        private static readonly string[] Kern =
+        {
+            "log", "warn", "console", "move_speed", "backend", "on",
+            "after", "every", "cancel", "get", "set", "save", "surface_size"
+        };
+
+        /// <summary>
+        /// Schreibt die Referenz. Schlaegt das fehl, wird es GEMELDET und sonst nichts -
+        /// ein Wirt, der wegen seiner Dokumentation nicht startet, waere absurd.
+        /// </summary>
+        internal static void Schreibe(Table s1, string ordner, string backend, IScriptLog log)
+        {
+            try
+            {
+                if (!Directory.Exists(ordner)) Directory.CreateDirectory(ordner);
+
+                var tabellen = new List<KeyValuePair<string, Table>>();
+                var kernDa = new List<string>();
+                foreach (var paar in s1.Pairs)
+                {
+                    var name = paar.Key.Type == DataType.String ? paar.Key.String : null;
+                    if (name == null) continue;
+                    if (paar.Value.Type == DataType.Table) tabellen.Add(new KeyValuePair<string, Table>(name, paar.Value.Table));
+                    else kernDa.Add(name);
+                }
+                tabellen.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+                kernDa.Sort(StringComparer.Ordinal);
+
+                var mitglieder = 0;
+                foreach (var t in tabellen) mitglieder += Zaehle(t.Value);
+
+                Datei(Path.Combine(ordner, "ScriptOne-API.md"), Referenz(tabellen, kernDa, backend, mitglieder));
+                Datei(Path.Combine(ordner, "s1.lua"), Stubs(tabellen, kernDa));
+                Datei(Path.Combine(ordner, "README.txt"), Wegweiser(tabellen.Count, mitglieder, backend));
+
+                log.Info("documentation written: " + tabellen.Count + " tables, " + mitglieder +
+                         " members -> " + ordner);
+            }
+            catch (Exception ex)
+            {
+                log.Warn("could not write documentation (" + ex.GetType().Name + ": " + ex.Message + ")");
+            }
+        }
+
+        private static int Zaehle(Table t)
+        {
+            var n = 0;
+            foreach (var p in t.Pairs) { if (p.Key.Type == DataType.String) n++; }
+            return n;
+        }
+
+        private static List<string> Namen(Table t)
+        {
+            var l = new List<string>();
+            foreach (var p in t.Pairs) if (p.Key.Type == DataType.String) l.Add(p.Key.String);
+            l.Sort(StringComparer.Ordinal);
+            return l;
+        }
+
+        private static bool IstFunktion(DynValue v)
+        {
+            return v.Type == DataType.ClrFunction || v.Type == DataType.Function;
+        }
+
+        private static void Datei(string pfad, string inhalt)
+        {
+            File.WriteAllText(pfad, inhalt.Replace("\n", Environment.NewLine), new UTF8Encoding(false));
+        }
+
+        // ------------------------------------------------------------------ Referenz
+        private static string Referenz(List<KeyValuePair<string, Table>> tabellen,
+                                       List<string> kern, string backend, int mitglieder)
+        {
+            var b = new StringBuilder();
+            b.Append("# ScriptOne - what you can call in this game\n\n");
+            b.Append("Generated by ScriptOne on ")
+             .Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))
+             .Append(" by walking the API that is actually installed.\n");
+            b.Append("It therefore matches this game and this build exactly - it is not a hand-written\n");
+            b.Append("document that can fall behind. Regenerated on every start.\n\n");
+            b.Append("Backend: ").Append(backend).Append("  |  tables: ").Append(tabellen.Count)
+             .Append("  |  members: ").Append(mitglieder).Append("\n\n");
+            b.Append("Everything lives under the global `s1`. Only numbers, strings and booleans cross\n");
+            b.Append("into Lua - no game object is ever handed over.\n\n");
+            b.Append("> **Arguments are not listed here.** They do not survive into the running host, and\n");
+            b.Append("> a guessed signature would be worse than none. `s1.lua` next to this file carries\n");
+            b.Append("> the stubs your editor completes from.\n\n");
+            b.Append("---\n\n## Core\n\nAlways present, in every game:\n\n");
+            foreach (var k in Kern)
+            {
+                if (!kern.Contains(k)) continue;
+                b.Append("- `s1.").Append(k).Append("`\n");
+            }
+            var extra = new List<string>();
+            foreach (var k in kern) if (Array.IndexOf(Kern, k) < 0) extra.Add(k);
+            if (extra.Count > 0)
+            {
+                b.Append("\nAlso present:\n\n");
+                foreach (var k in extra) b.Append("- `s1.").Append(k).Append("`\n");
+            }
+
+            b.Append("\n---\n\n## Generated surface\n\n");
+            b.Append("One table per game manager that ScriptOne found. A `()` means it is callable,\n");
+            b.Append("anything else is a plain value.\n\n");
+            // ⚠ Die HERKUNFT einer Tabelle ist hier eine Nutzungsregel, keine Fussnote: eine
+            //   Tabelle aus der Szene antwortet mit nil, solange ihr Objekt nicht in der
+            //   laufenden Szene liegt. Ohne diesen Satz liest sich das wie ein Fehler.
+            b.Append("Tables marked **in the scene** are reached by searching the running scene for the\n");
+            b.Append("object. They answer with `nil` while that object does not exist - in the main menu,\n");
+            b.Append("during loading, or before a save is open. That is not a fault; wait for the event\n");
+            b.Append("you care about and read them then.\n\n");
+            foreach (var t in tabellen)
+            {
+                b.Append("### `s1.").Append(t.Key).Append('`');
+                if (RuntimeSurface.AusDerSzene.Contains(t.Key)) b.Append("  *(in the scene)*");
+                b.Append("\n\n");
+                foreach (var n in Namen(t.Value))
+                {
+                    var v = t.Value.Get(n);
+                    b.Append("- `s1.").Append(t.Key).Append('.').Append(n);
+                    b.Append(IstFunktion(v) ? "()`" : "` - value");
+                    // ⚠ Eine verschwundene Bindung steht als Stummel in der Tabelle und saehe
+                    //   hier wie jede andere aus. Sie wird BENANNT statt weggelassen: dass sie
+                    //   einmal da war und es nicht mehr gibt, ist die nuetzlichere Auskunft.
+                    if (RuntimeSurface.Verschwunden.Contains(t.Key + "." + n))
+                        b.Append("  **- gone: the game no longer has this. Calling it says so.**");
+                    b.Append('\n');
+                }
+                b.Append('\n');
+            }
+            return b.ToString();
+        }
+
+        // ------------------------------------------------------------------ Editor-Stubs
+        private static string Stubs(List<KeyValuePair<string, Table>> tabellen, List<string> kern)
+        {
+            var b = new StringBuilder();
+            b.Append("-- ScriptOne editor stubs - generated, do not edit.\n");
+            b.Append("-- Point your Lua language server at this file to get completion for s1.*\n");
+            b.Append("-- Argument lists are unknown at runtime and therefore omitted.\n\n");
+            b.Append("---@class s1\n");
+            b.Append("s1 = {}\n\n");
+            foreach (var k in kern) b.Append("function s1.").Append(k).Append("() end\n");
+            b.Append('\n');
+            foreach (var t in tabellen)
+            {
+                b.Append("s1.").Append(t.Key).Append(" = {}\n");
+                foreach (var n in Namen(t.Value))
+                {
+                    var v = t.Value.Get(n);
+                    if (IstFunktion(v)) b.Append("function s1.").Append(t.Key).Append('.').Append(n).Append("() end\n");
+                    else b.Append("s1.").Append(t.Key).Append('.').Append(n).Append(" = nil\n");
+                }
+                b.Append('\n');
+            }
+            return b.ToString();
+        }
+
+        // ------------------------------------------------------------------ Wegweiser
+        private static string Wegweiser(int tabellen, int mitglieder, string backend)
+        {
+            var b = new StringBuilder();
+            b.Append("ScriptOne - where everything is\n");
+            b.Append("===============================\n\n");
+            b.Append("ScriptOne runs Lua scripts inside this game. A script IS the mod: no compiler,\n");
+            b.Append("no rebuild. This folder is written by ScriptOne itself on every start, so it\n");
+            b.Append("always describes the game you actually have.\n\n");
+            b.Append("In this game ScriptOne found ").Append(tabellen).Append(" tables with ")
+             .Append(mitglieder).Append(" members (backend: ").Append(backend).Append(").\n\n");
+            b.Append("YOUR SCRIPTS\n");
+            b.Append("  LuaScripts\\                 put .lua files here. Subfolders work. Each file\n");
+            b.Append("                              gets its own interpreter, so one broken script\n");
+            b.Append("                              cannot take the others down.\n\n");
+            b.Append("WHAT YOU CAN CALL\n");
+            b.Append("  documentation\\ScriptOne-API.md   every table and member, regenerated each start\n");
+            b.Append("  documentation\\s1.lua             the same as editor stubs, for completion\n\n");
+            b.Append("WHAT SCRIPTONE WROTE\n");
+            b.Append("  ScriptOne.log               the run you are in\n");
+            b.Append("  logs\\                       the five previous runs, .log.1 is the most recent\n");
+            b.Append("  state\\                      what your scripts stored with s1.set / s1.save\n");
+            b.Append("  ScriptOne-Starter.cfg       settings, with every option explained inside\n\n");
+            b.Append("WHAT SCRIPTONE NEEDS (standalone install only)\n");
+            b.Append("  core-runtime\\               the host and its dependencies\n");
+            b.Append("  interopgenerator\\           proxy assemblies generated from YOUR game files.\n");
+            b.Append("                              They are specific to your installed version and\n");
+            b.Append("                              are never shipped with a release.\n");
+            b.Append("  disabled-loaders\\           loader files set aside so two loaders cannot\n");
+            b.Append("                              fight over the same entry point.\n\n");
+            b.Append("A FIRST SCRIPT\n");
+            b.Append("  Save this as LuaScripts\\hello.lua and start the game:\n\n");
+            b.Append("      s1.on(\"game_ready\", function()\n");
+            b.Append("          s1.log(\"hello from Lua - \" .. s1.surface_size .. \" tables available\")\n");
+            b.Append("      end)\n\n");
+            b.Append("  Then look at ScriptOne.log. If the line is there, everything works.\n");
+            return b.ToString();
+        }
+    }
+}

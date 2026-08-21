@@ -1,0 +1,141 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Maschinenpfade wie im Hauptprojekt: aus Local.props im Repo-Wurzelordner. Ohne sie
+       bleibt $(MonoManagedPath) leer und der Bau meldet MSB3245 + CS0246 - laut statt still. -->
+  <!-- ⚠ VERSION.PROPS ZUERST. Ohne diesen Import stand $(Version) auf dem SDK-Vorgabewert
+       1.0.0 - gemessen am gebauten Attribut: BepInPlugin(virtunerd.scriptone|ScriptOne|1.0.0),
+       waehrend alles andere 0.1.0 traegt. Genau die zweite Wahrheit, die der erzeugte
+       Versionsstempel eigentlich verhindern sollte: er erzeugte brav die FALSCHE Zahl. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Version.props" />
+
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)..\..\Local.props')" />
+
+  <!--
+    ScriptOne als BepInEx-PLUGIN.
+
+    WARUM EIN EIGENER BAU UND KEINE ZWEITROLLE DER MOD-DLL - drei Gruende, zwei gemessen:
+      1. BepInEx laedt nur Assemblies, die BepInEx REFERENZIEREN (Chainloader-Filter). Eine
+         DLL, die das tut, traegt diese Referenz auch unter MelonLoader mit sich herum.
+      2. Die Suchorte trennen ohnehin: BepInEx sucht in BepInEx\plugins, MelonLoader lud
+         gemessen aus .\Plugins\. Dieselbe Datei an beiden Orten waeren ZWEI Lua-Wirte im
+         selben Prozess.
+      3. BepInEx 5 und 6 filtern gegen verschiedene Assembly-Namen (BepInEx bzw.
+         BepInEx.Core) - eine Datei kann nicht beiden genuegen.
+
+    ⚠ DIESER BAU IST BepInEx 5 / MONO. Fuer BepInEx 6 (Il2Cpp) waere es ein dritter Bau
+    gegen BasePlugin statt BaseUnityPlugin; auf dieser Maschine liegt davon kein
+    Binaerstand, also wird er erst gebaut, wenn er gemessen werden kann.
+
+    ⚠ DIE KONFIGURATION HEISST 'Mono', UND DAS IST INHALT: das SDK erzeugt aus dem
+    Konfigurationsnamen die Konstante MONO ($(Configuration.ToUpperInvariant())). Der
+    gemeinsame Quelltext unter Host\ und Game\ schaltet daran seine Backend-Zweige. Wer
+    diese Konfiguration umbenennt, uebersetzt lautlos den Il2Cpp-Zweig.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Configurations>Mono</Configurations>
+    <Configuration Condition="'$(Configuration)' == ''">Mono</Configuration>
+    <AssemblyName>ScriptOne.BepInEx5.MONO</AssemblyName>
+    <RootNamespace>ScriptOne.Adapters.BepInEx5</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants>$(DefineConstants);MONO;BEPINEX5</DefineConstants>
+
+    <!-- Kein MelonInfo, kein Deploy nach Mods\ - beides gehoert dem anderen Bau. -->
+    <GenerateMelonInfo>false</GenerateMelonInfo>
+    <SkipCopyToGame>true</SkipCopyToGame>
+    <!-- ⚠ DIE DLL TRUG 0.0.0.0. Die zentrale Erzeugung in Directory.Build.props haengt an
+         <MelonModName> - dieses Projekt ist aber KEIN Mod und faellt deshalb durch. Also
+         hier ausdruecklich stempeln lassen; die Zahl kommt weiterhin aus Version.props.
+         IncludeSourceRevision... aus, sonst haengt ein +sha an der Dateiversion. -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);0162;0168;0414;0649;1573;1574;1591</NoWarn>
+
+    <!-- BepInEx liegt NICHT auf nuget.org - gemessen: NU1101. Der eigene Feed traegt es
+         (BepInEx.Core 5.4.21 wiederhergestellt in 3 s). Nur fuer DIESES Projekt, damit die
+         uebrigen Baue keine zusaetzliche Quelle bekommen. -->
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);https://nuget.bepinex.dev/v3/index.json</RestoreAdditionalProjectSources>
+
+    <MonoManagedPath Condition="'$(MonoManagedPath)' == '' and '$(MonoGamePath)' != ''">$(MonoGamePath)\Schedule I_Data\Managed</MonoManagedPath>
+    <MoonSharpDll>..\..\ThirdParty\net40\MoonSharp.Interpreter.dll</MoonSharpDll>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Der KERN kommt aus dem vorhandenen Baum, per Link. Keine Kopie: was hier gebaut wird,
+       ist derselbe Wirt wie im MelonLoader-Plugin und im Standalone-Preloader. -->
+  <ItemGroup>
+
+  <!-- ⚠ EINE QUELLE FUER DIE PFADNAMEN. Host\VerwaisterWirt.cs prueft zur Laufzeit, ob eine
+       Standalone-Installation noch starten kann - und braucht dafuer dieselben Ordner- und
+       Dateinamen, die der Installer schreibt. Pfade.cs sagt in seinem eigenen Kopf, warum
+       die nirgends ein zweites Mal stehen duerfen: nach der Umbenennung vom 2026-08-19 blieb
+       genau so ein zweiter Ort stehen, Bau und Tests blieben gruen, und die Installation
+       zeigte auf einen Ordner, den es nicht gab. Die Klasse ist eine reine Konstantenliste
+       ohne Abhaengigkeiten - sie mitzuuebersetzen kostet nichts. -->
+    <Compile Include="..\..\Standalone\Installer\Core\Pfade.cs" LinkBase="Setup" />
+    <Compile Include="..\..\Host\**\*.cs" LinkBase="Host" />
+    <Compile Include="..\..\Game\**\*.cs" LinkBase="Game" />
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <!-- ⚠ LuaBoot nimmt einen MelonLogger entgegen - das ist die EINE Datei des Kerns, die an
+       MelonLoader haengt. Der Adapter bringt seinen eigenen Einstieg mit. -->
+  <ItemGroup>
+    <Compile Remove="..\..\Host\LuaBoot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ⚠ NICHT NUR CoreModule: BepInEx' BaseUnityPlugin erbt von MonoBehaviour aus der
+         MONOLITHISCHEN UnityEngine.dll (gemessen: 18x CS0012 "Der Typ MonoBehaviour ist in
+         einer nicht referenzierten Assembly UnityEngine definiert"). Beide Assemblies liegen
+         im Managed-Ordner nebeneinander. -->
+    <Reference Include="UnityEngine">
+      <HintPath>$(MonoManagedPath)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="MoonSharp.Interpreter">
+      <HintPath>$(MoonSharpDll)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- ⚠ DIE VERSION IM ATTRIBUT WAERE EINE ZWEITE WAHRHEIT. [BepInPlugin] verlangt eine
+       Konstante, also erzeugt der Bau sie aus $(Version) - derselben Quelle wie alle anderen
+       Artefakte (Version.props). Von Hand getippt waere sie beim naechsten Versionswechsel
+       genau die eine Stelle, die niemand anfasst. -->
+  <Target Name="SchreibeBepVersion" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <_BepVersionDatei>$(IntermediateOutputPath)BepVersion.g.cs</_BepVersionDatei>
+    </PropertyGroup>
+    <ItemGroup>
+      <_BepVersionZeile Include="namespace ScriptOne.Adapters.BepInEx5" />
+      <_BepVersionZeile Include="{" />
+      <_BepVersionZeile Include="    internal static class BepVersion" />
+      <_BepVersionZeile Include="    {" />
+      <_BepVersionZeile Include="        internal const string Version = &quot;$(Version)&quot;%3B" />
+      <_BepVersionZeile Include="    }" />
+      <_BepVersionZeile Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_BepVersionDatei)" Lines="@(_BepVersionZeile)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(_BepVersionDatei)" />
+    </ItemGroup>
+  </Target>
+
+  <Import Project="..\..\build\References.Mono.props" />
+
+</Project>
